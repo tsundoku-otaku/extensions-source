@@ -23,6 +23,19 @@ jobs:
       - name: Build
         run: ./gradlew assembleRelease
 
+      - uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+
+      - name: Sign APK
+        run: |
+          APK_PATH=$(find . -name "*.apk" -path "*/release/*" | head -1)
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks keystore.jks --ks-key-alias ${{ secrets.KEY_ALIAS }} --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} --key-pass pass:${{ secrets.KEY_PASSWORD }} "$APK_PATH"
+
       - name: Upload APKs
         uses: actions/upload-artifact@v5
         with:
