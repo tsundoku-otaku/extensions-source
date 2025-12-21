@@ -119,9 +119,15 @@ jobs:
             fi
           done
 
+      - name: List generated APKs (debug)
+        run: |
+          echo "Listing APKs produced by this build chunk (workspace root):"
+          find . -type f -name "*.apk" -print || true
+          echo "Count:"; find . -type f -name "*.apk" | wc -l || true
+
       - name: Upload APKs (${{ matrix.chunk.number }})
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-        if: ${{ github.repository == 'mrissaoussama/extensions-source' }}
+        if: ${{ github.repository == env.SOURCE_REPOSITORY }}
         with:
           name: "individual-apks-${{ matrix.chunk.number }}"
           path: "**/*.apk"
@@ -159,19 +165,78 @@ jobs:
         run: |
           cd main
           python ./.github/scripts/move-built-apks.py
-          INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/keiyoushi/extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
-          curl -L "$INSPECTOR_LINK" -o ./Inspector.jar
-          java -jar ./Inspector.jar "repo/apk" "output.json" "tmp"
-          python ./.github/scripts/create-repo.py
+          echo "Moved APKs:"
+          ls -1 *.apk || true
 
-      - name: Checkout repo branch
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
-        with:
-          repository: ${{ env.PUBLISH_REPOSITORY }}
-          token: ${{ secrets.PUBLISH_TOKEN }}
-          ref: repo
-          path: repo
-          persist-credentials: true
+      - name: Check remote access to publish repo
+        run: |
+          set -euo pipefail
+          echo "Checking access to https://github.com/${{ env.PUBLISH_REPOSITORY }} using BOT_PAT"
+          if [ -z "${{ secrets.BOT_PAT }}" ]; then
+            echo "BOT_PAT is empty or not set; checkout may fail"
+            exit 1
+          fi
+          # Try to list remote heads to ensure token works
+          REPO_URL="https://${{ secrets.BOT_PAT }}@github.com/${{ env.PUBLISH_REPOSITORY }}.git"
+          echo "Listing remote heads for $REPO_URL"
+          git ls-remote --heads "$REPO_URL" || { echo "git ls-remote failed"; exit 1; }
+        shell: bash
+
+      - name: Ensure publish repo initialized and checkout
+        run: |
+          set -euo pipefail
+          echo "Ensuring ${{ env.PUBLISH_REPOSITORY }} is initialized and checking out branch 'repo'"
+
+          # Pick token (BOT_PAT preferred, else PUBLISH_TOKEN)
+          if [ -n "${{ secrets.BOT_PAT }}" ]; then
+            TOKEN="${{ secrets.BOT_PAT }}"
+            echo "Using BOT_PAT"
+          elif [ -n "${{ secrets.PUBLISH_TOKEN }}" ]; then
+            TOKEN="${{ secrets.PUBLISH_TOKEN }}"
+            echo "Using PUBLISH_TOKEN"
+          else
+            echo "Error: no publish token available (BOT_PAT or PUBLISH_TOKEN required)"
+            exit 1
+          fi
+
+          OWNER_REPO="${{ env.PUBLISH_REPOSITORY }}"
+          OWNER="$(echo "$OWNER_REPO" | cut -d'/' -f1)"
+          REPO="$(echo "$OWNER_REPO" | cut -d'/' -f2)"
+
+          API_BASE="https://api.github.com/repos/$OWNER/$REPO"
+
+          # Check if remote has branches (404 means empty repository)
+          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $TOKEN" "$API_BASE/branches")
+          echo "GitHub API branches status: $status"
+          if [ "$status" = "404" ] || [ "$status" = "204" ]; then
+            echo "Repository appears empty (no branches). Creating initial README via GitHub API."
+            content_b64=$(printf "# extensions repo\n" | base64 -w0)
+            payload="{\"message\": \"Initial commit from CI\", \"content\": \"${content_b64}\"}"
+            resp=$(curl -s -X PUT -H "Authorization: token $TOKEN" -H "Content-Type: application/json" -d "$payload" "$API_BASE/contents/README.md")
+            echo "Created initial commit: $(echo "$resp" | sed -n '1,2p')"
+          else
+            echo "Repository has branches or API returned $status; proceeding."
+          fi
+
+          # Build authenticated repo URL for git operations
+          REPO_URL="https://${TOKEN}@github.com/${OWNER}/${REPO}.git"
+
+          # If 'repo' branch exists remotely, clone it. Otherwise clone default and create 'repo' branch.
+          if git ls-remote --heads "$REPO_URL" repo | grep -q repo; then
+            echo "Branch 'repo' exists on remote. Cloning that branch..."
+            git clone --depth 1 --branch repo "$REPO_URL" repo
+          else
+            echo "Branch 'repo' does not exist. Cloning default branch..."
+            git clone --depth 1 "$REPO_URL" repo
+            pushd repo
+            # Create repo branch and push it up
+            git checkout -b repo
+            git push -u origin repo || true
+            popd
+          fi
+
+          echo "Checked out repository into ./repo"
+        shell: bash
 
       - name: Merge and deploy repo
         env:
