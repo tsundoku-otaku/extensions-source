@@ -64,12 +64,10 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     private fun getAccessToken(): String? {
-        // First check WebView cookies for tokens
         val cookieManager = android.webkit.CookieManager.getInstance()
         val cookies = cookieManager.getCookie(baseUrl)
 
         if (cookies != null) {
-            // Extract access_token from cookies (fz_access_token or fz_refresh_token)
             val accessTokenMatch = Regex("""fz_access_token=([^;]+)""").find(cookies)
             if (accessTokenMatch != null) {
                 return accessTokenMatch.groupValues[1]
@@ -79,14 +77,11 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                 return refreshTokenMatch.groupValues[1]
             }
         }
-
-        // Fall back to preferences
         return preferences.getString("fz_access_token", null)
     }
 
     private fun apiRequest(path: String, method: String = "GET", includeAuth: Boolean = true): Request {
         val timestamp = java.time.Instant.now().toString()
-
         val headers = buildJsonArray {
             add(
                 buildJsonArray {
@@ -100,7 +95,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                     add(JsonPrimitive(timestamp))
                 },
             )
-            // Always try to include auth token if available
             if (includeAuth) {
                 val token = getAccessToken()
                 if (token != null) {
@@ -124,7 +118,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         return POST(apiUrl, this.headers, requestBody)
     }
 
-    // Popular Novels
     override fun popularMangaRequest(page: Int): Request {
         return apiRequest("/platform/browse?page=$page&page_size=20&sort_by=bookmark_count&sort_order=desc&include_genres=true")
     }
@@ -170,14 +163,12 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         return MangasPage(mangas, hasNext)
     }
 
-    // Latest Updates
     override fun latestUpdatesRequest(page: Int): Request {
         return apiRequest("/platform/browse?page=$page&page_size=20&sort_by=created_at&sort_order=desc&include_genres=true")
     }
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
-    // Search
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
         val sourceFilter = filters.find { it is SourceFilter } as? SourceFilter
         val sourceId = sourceFilter?.toUriPart() ?: "fictionzone"
@@ -185,8 +176,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         return when (sourceId) {
             "fictionzone", "all" -> buildPlatformSearchRequest(page, query, filters)
             else -> {
-                // Single omniportal source - use browse or search
-                // Always include auth for omniportal
                 if (query.isNotEmpty()) {
                     apiRequest("/omniportal/search?source_id=$sourceId&query=${java.net.URLEncoder.encode(query, "UTF-8")}&page=$page&translate=en", "GET", includeAuth = true)
                 } else {
@@ -232,7 +221,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
 
     override fun searchMangaParse(response: Response): MangasPage = popularMangaParse(response)
 
-    // Novel Details
     override fun mangaDetailsRequest(manga: SManga): Request {
         if (manga.url.startsWith("/omniportal/")) {
             // Parse: /omniportal/{source_id}/{source_key}
@@ -250,8 +238,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         val jsonString = response.body.string()
         val jsonObject = json.parseToJsonElement(jsonString).jsonObject
 
-        // For platform novels, data may contain a "novel" sub-object
-        // For omniportal, data IS the novel object directly
         val dataElement = jsonObject["data"]!!
         val data = if (dataElement.jsonObject.containsKey("novel")) {
             dataElement.jsonObject["novel"]!!.jsonObject
@@ -262,7 +248,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         return SManga.create().apply {
             title = data["title"]!!.jsonPrimitive.content
 
-            // Parse alternative titles for platform novels
             val altTitlesList = data["alt_titles"]?.jsonArray
                 ?.mapNotNull { it.jsonPrimitive.contentOrNull?.trim() }
                 ?.filter { it.isNotBlank() && it != title }
@@ -275,30 +260,22 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                 synopsis ?: ""
             }
 
-            // Parse genres and tags
-            // For platform novels, they're objects with "name" field
-            // For omniportal, they're plain strings
             val genresList = data["genres"]?.jsonArray?.mapNotNull { element ->
                 try {
-                    // Try as object first (platform format)
                     element.jsonObject["name"]?.jsonPrimitive?.contentOrNull
                 } catch (e: Exception) {
-                    // Fall back to string (omniportal format)
                     element.jsonPrimitive.contentOrNull
                 }
             } ?: emptyList()
             val tagsList = data["tags"]?.jsonArray?.mapNotNull { element ->
                 try {
-                    // Try as object first (platform format)
                     element.jsonObject["name"]?.jsonPrimitive?.contentOrNull
                 } catch (e: Exception) {
-                    // Fall back to string (omniportal format)
                     element.jsonPrimitive.contentOrNull
                 }
             } ?: emptyList()
             genre = (genresList + tagsList).joinToString(", ")
 
-            // Parse status - handle both int and string formats
             status = when (data["status"]?.jsonPrimitive?.contentOrNull) {
                 "1", "ongoing" -> SManga.ONGOING
                 "2", "completed" -> SManga.COMPLETED
@@ -309,32 +286,27 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                 }
             }
 
-            // Handle image/cover_image field
             val img = data["image"]?.jsonPrimitive?.contentOrNull ?: data["cover_image"]?.jsonPrimitive?.contentOrNull
             if (img != null) {
                 thumbnail_url = if (img.startsWith("http")) img else "https://cdn.fictionzone.net/insecure/rs:fill:165:250/$img.webp"
             }
 
-            // Handle author/contributors
             author = data["author"]?.jsonPrimitive?.contentOrNull
                 ?: data["contributors"]?.jsonArray?.firstOrNull()?.jsonObject?.get("display_name")?.jsonPrimitive?.contentOrNull
         }
     }
 
-    // Chapters - Override fetchChapterList to handle everything in one place
     override fun fetchChapterList(manga: SManga): rx.Observable<List<SChapter>> {
         return rx.Observable.fromCallable {
             val isOmniportal = manga.url.startsWith("/omniportal/")
 
             val (request, novelId, sourceId, sourceKey) = if (isOmniportal) {
-                // Parse: /omniportal/{source_id}/{source_key}
                 val parts = manga.url.removePrefix("/omniportal/").split("/")
                 val srcId = parts[0]
                 val srcKey = parts[1]
                 val req = apiRequest("/omniportal/novels/chapters?source_id=$srcId&source_key=$srcKey&translate=en")
                 Quadruple(req, "", srcId, srcKey)
             } else {
-                // For platform novels, fetch details to get the ID
                 val detailsRequest = mangaDetailsRequest(manga)
                 val detailsResponse = client.newCall(detailsRequest).execute()
                 val detailsJson = json.parseToJsonElement(detailsResponse.body.string()).jsonObject
@@ -355,9 +327,7 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                     name = obj["title"]!!.jsonPrimitive.content
                     val chapterId = obj["chapter_id"]!!.jsonPrimitive.content
 
-                    // Format URL based on novel type
                     url = if (isOmniportal) {
-                        // For omniportal, get source info from response data
                         val respSourceId = data["source_id"]?.jsonPrimitive?.contentOrNull ?: sourceId
                         val respSourceKey = data["source_key"]?.jsonPrimitive?.contentOrNull ?: sourceKey
                         "/omniportal/chapters/content?source_id=$respSourceId&source_key=$respSourceKey&chapter_id=$chapterId&translate=en"
@@ -376,21 +346,16 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         }
     }
 
-    // These are not used when fetchChapterList is overridden, but must be implemented
     override fun chapterListRequest(manga: SManga): Request = throw UnsupportedOperationException()
     override fun chapterListParse(response: Response): List<SChapter> = throw UnsupportedOperationException()
 
-    // Helper class for returning multiple values
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
-    // Content - fetch chapter content via POST API
     override fun pageListRequest(chapter: SChapter): Request {
-        // This won't be used since we override fetchPageList
         throw UnsupportedOperationException("Not used")
     }
 
     override fun pageListParse(response: Response): List<Page> {
-        // This won't be used since we override fetchPageList
         throw UnsupportedOperationException("Not used")
     }
 
@@ -399,7 +364,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     override suspend fun fetchPageText(page: Page): String {
-        // page.url contains the API path like:
         // Platform: "/platform/chapter-content?novel_id=15752&chapter_id=1136402"
         // Omniportal: "/omniportal/chapters/content?source_id=fq&source_key=123&chapter_id=456&translate=en"
         val apiPath = page.url
@@ -412,7 +376,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
 
         val jsonObject = json.parseToJsonElement(jsonString).jsonObject
 
-        // Check for errors
         if (jsonObject["success"]?.jsonPrimitive?.boolean != true) {
             val message = jsonObject["message"]?.jsonPrimitive?.contentOrNull ?: "Failed to fetch chapter"
             throw Exception(message)
@@ -424,14 +387,11 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException("Not used")
-
-    // Filters & Preferences
     override fun getFilterList(): FilterList {
         val filters = mutableListOf<Filter<*>>()
 
         filters.add(SortFilter())
 
-        // Check if user wants to always refresh or use cache
         val alwaysRefresh = preferences.getBoolean("always_refresh_metadata", false)
         if (alwaysRefresh) {
             Thread { refreshMetadata() }.start()
@@ -471,7 +431,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     private fun refreshMetadata() {
-        // Fetch Genres
         try {
             val genresReq = apiRequest("/platform/genres")
             val genresRes = client.newCall(genresReq).execute()
@@ -486,7 +445,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
             }
         } catch (e: Exception) { e.printStackTrace() }
 
-        // Fetch Tags
         try {
             val tagsReq = apiRequest("/platform/tags")
             val tagsRes = client.newCall(tagsReq).execute()
@@ -501,7 +459,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
             }
         } catch (e: Exception) { e.printStackTrace() }
 
-        // Fetch Sources
         try {
             val sourcesReq = apiRequest("/omniportal/sources")
             val sourcesRes = client.newCall(sourcesReq).execute()
@@ -521,7 +478,7 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         EditTextPreference(screen.context).apply {
             key = "fz_access_token"
             title = "Access Token"
-            summary = "Enter your fz_access_token from browser cookies (login via WebView first)"
+            summary = "Enter your fz_access_token from browser cookies"
             setDefaultValue("")
         }.also(screen::addPreference)
 
@@ -531,11 +488,8 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
             summary = "When enabled, fetches latest sources, genres, and tags each time filters are loaded. When disabled, uses cached data."
             setDefaultValue(false)
         }.also(screen::addPreference)
-
-        // Note: Manual metadata refresh can be done by toggling "Always Refresh Metadata" on and reopening browse
     }
 
-    // Filter Classes
     class SortFilter : Filter.Sort(
         "Sort",
         arrayOf(
