@@ -220,7 +220,9 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     override fun searchMangaParse(response: Response): MangasPage = popularMangaParse(response)
-
+    override fun getMangaUrl(manga: SManga): String {
+        return baseUrl + manga.url
+    }
     override fun mangaDetailsRequest(manga: SManga): Request {
         if (manga.url.startsWith("/omniportal/")) {
             // Parse: /omniportal/{source_id}/{source_key}

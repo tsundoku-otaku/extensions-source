@@ -134,11 +134,14 @@ class NovelFire : HttpSource(), NovelSource {
     private fun parseNovelList(doc: Document): MangasPage {
         val novels = doc.select(".novel-item").mapNotNull { element ->
             try {
-                val titleElement = element.selectFirst(".novel-title > a")
-                val title = titleElement?.attr("title") ?: titleElement?.text() ?: "No Title Found"
-                val novelUrl = titleElement?.attr("href") ?: return@mapNotNull null
+                // Multiple fallbacks for title extraction
+                val title = element.selectFirst("a")?.attr("title")?.takeIf { it.isNotBlank() }
+                    ?: element.selectFirst(".novel-title")?.text()?.takeIf { it.isNotBlank() }
+                    ?: element.selectFirst("h4")?.text()?.takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
 
-                if (novelUrl.isEmpty()) return@mapNotNull null
+                val novelUrl = element.selectFirst("a")?.attr("href")?.takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
 
                 val coverElement = element.selectFirst(".novel-cover > img")
                 val coverUrl = coverElement?.attr("data-src") ?: coverElement?.attr("src")
@@ -146,8 +149,9 @@ class NovelFire : HttpSource(), NovelSource {
                 SManga.create().apply {
                     this.title = title
                     this.url = novelUrl.removePrefix(baseUrl)
+                    // Default cover fallback
                     thumbnail_url = when {
-                        coverUrl.isNullOrEmpty() -> ""
+                        coverUrl.isNullOrEmpty() -> "$baseUrl/images/no-cover.jpg"
                         coverUrl.startsWith("http") -> coverUrl
                         coverUrl.startsWith("/") -> baseUrl + coverUrl
                         else -> coverUrl
@@ -175,13 +179,18 @@ class NovelFire : HttpSource(), NovelSource {
         checkCloudflare(doc)
 
         val manga = SManga.create().apply {
-            title = doc.selectFirst(".novel-title")?.text()?.trim() ?: doc.selectFirst(".cover > img")?.attr("alt") ?: "No Title Found"
+            // Multiple fallbacks for title
+            title = doc.selectFirst(".novel-title")?.text()?.trim()?.takeIf { it.isNotBlank() }
+                ?: doc.selectFirst(".cover > img")?.attr("alt")?.takeIf { it.isNotBlank() }
+                ?: doc.selectFirst("h1")?.text()?.trim()?.takeIf { it.isNotBlank() }
+                ?: "No Title Found"
 
             // Get cover image
             val coverElement = doc.selectFirst(".cover > img")
             val coverUrl = coverElement?.attr("data-src") ?: coverElement?.attr("src")
+            // Default cover fallback
             thumbnail_url = when {
-                coverUrl.isNullOrEmpty() -> ""
+                coverUrl.isNullOrEmpty() -> "$baseUrl/images/no-cover.jpg"
                 coverUrl.startsWith("http") -> coverUrl
                 coverUrl.startsWith("/") -> baseUrl + coverUrl
                 else -> coverUrl
@@ -326,7 +335,7 @@ class NovelFire : HttpSource(), NovelSource {
 
         // Build chapter URLs using the novel path and slug
         // Format: /book/novel-name/chapter-number
-        return ajaxResponse.data.map { chapter ->
+        return ajaxResponse.data.mapIndexed { index, chapter ->
             SChapter.create().apply {
                 name = chapter.title
                 // Use chapter-number format as slug often leads to 404s
@@ -334,7 +343,7 @@ class NovelFire : HttpSource(), NovelSource {
                 date_upload = 0L
                 chapter_number = chapter.nSort.toFloat()
             }
-        }.sortedBy { it.chapter_number }
+        }.sortedBy { it.chapter_number } // Sort chapters by number ascending
     }
 
     private fun getAllChaptersFromHtml(novelPath: String, pages: Int): List<SChapter> {

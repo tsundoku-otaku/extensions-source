@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.NovelSource
+import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
@@ -50,7 +51,7 @@ abstract class ReadNovelFull(
 
     override val supportsLatest = true
 
-    override val client = network.cloudflareClient
+    override val client = network.client
 
     private val preferences: SharedPreferences by lazy {
         Injekt.get<Application>().getSharedPreferences("source_$id", 0x0000)
@@ -59,13 +60,20 @@ abstract class ReadNovelFull(
     // Configuration options - can be overridden by child classes
     protected open val latestPage: String = "latest-release-novel"
     protected open val searchPage: String = "search"
+    protected open val novelListing: String? = null
     protected open val chapterListing: String? = "ajax/chapter-archive"
     protected open val chapterParam: String = "novelId"
     protected open val pageParam: String = "page"
+    protected open val typeParam: String = "type"
+    protected open val genreParam: String = "category_novel"
+    protected open val genreKey: String = "id"
+    protected open val langParam: String? = null
+    protected open val urlLangCode: String? = null
     protected open val searchKey: String = "keyword"
     protected open val postSearch: Boolean = false
     protected open val noAjax: Boolean = false
     protected open val pageAsPath: Boolean = false
+    protected open val noPages: List<String> = emptyList()
 
     override fun headersBuilder() = super.headersBuilder()
         .add("Referer", "$baseUrl/")
@@ -139,16 +147,49 @@ abstract class ReadNovelFull(
     // ======================== Search ========================
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-        return if (postSearch) {
+        // Build URL with filters
+        val urlBuilder = "$baseUrl/$searchPage".toHttpUrl().newBuilder()
+
+        if (query.isNotEmpty()) {
+            urlBuilder.addQueryParameter(searchKey, query)
+        }
+
+        // Apply filters
+        filters.forEach { filter ->
+            when (filter) {
+                is TypeFilter -> {
+                    val type = filter.toUriPart()
+                    if (type != "all") {
+                        urlBuilder.addQueryParameter(typeParam, type)
+                    }
+                }
+                is GenreFilter -> {
+                    filter.state.filter { it.state }.forEach { genre ->
+                        urlBuilder.addQueryParameter(genreParam, genre.id)
+                    }
+                }
+                is StatusFilter -> {
+                    val status = filter.toUriPart()
+                    if (status != "all") {
+                        urlBuilder.addQueryParameter("status", status)
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        if (!postSearch) {
+            urlBuilder.addQueryParameter(pageParam, page.toString())
+        }
+
+        val url = urlBuilder.build().toString()
+
+        return if (postSearch && query.isNotEmpty()) {
             val body = FormBody.Builder()
                 .add(searchKey, query)
                 .build()
-            POST("$baseUrl/$searchPage", headers, body)
+            POST(url, headers, body)
         } else {
-            val url = "$baseUrl/$searchPage".toHttpUrl().newBuilder()
-                .addQueryParameter(searchKey, query)
-                .addQueryParameter(pageParam, page.toString())
-                .build()
             GET(url, headers)
         }
     }
@@ -310,6 +351,78 @@ abstract class ReadNovelFull(
 
         return ""
     }
+
+    // ======================== Filters ========================
+
+    override fun getFilterList() = FilterList(
+        Filter.Header("Type filters"),
+        TypeFilter(),
+        Filter.Header("Genre filters"),
+        GenreFilter(getGenreList()),
+        Filter.Header("Status filters"),
+        StatusFilter(),
+    )
+
+    private class TypeFilter : Filter.Select<String>(
+        "Type",
+        arrayOf("All", "English", "Japanese", "Korean", "Chinese"),
+        0,
+    ) {
+        fun toUriPart() = values[state].lowercase()
+    }
+
+    private class GenreFilter(genres: List<Genre>) : Filter.Group<GenreCheckBox>(
+        "Genres",
+        genres.map { GenreCheckBox(it.name, it.id) },
+    )
+
+    private class GenreCheckBox(name: String, val id: String) : Filter.CheckBox(name)
+
+    private class StatusFilter : Filter.Select<String>(
+        "Status",
+        arrayOf("All", "Ongoing", "Completed"),
+        0,
+    ) {
+        fun toUriPart() = values[state].lowercase()
+    }
+
+    protected data class Genre(val name: String, val id: String)
+
+    protected open fun getGenreList() = listOf(
+        Genre("Action", "action"),
+        Genre("Adult", "adult"),
+        Genre("Adventure", "adventure"),
+        Genre("Comedy", "comedy"),
+        Genre("Drama", "drama"),
+        Genre("Ecchi", "ecchi"),
+        Genre("Fantasy", "fantasy"),
+        Genre("Gender Bender", "gender-bender"),
+        Genre("Harem", "harem"),
+        Genre("Historical", "historical"),
+        Genre("Horror", "horror"),
+        Genre("Josei", "josei"),
+        Genre("Martial Arts", "martial-arts"),
+        Genre("Mature", "mature"),
+        Genre("Mecha", "mecha"),
+        Genre("Mystery", "mystery"),
+        Genre("Psychological", "psychological"),
+        Genre("Romance", "romance"),
+        Genre("School Life", "school-life"),
+        Genre("Sci-fi", "sci-fi"),
+        Genre("Seinen", "seinen"),
+        Genre("Shoujo", "shoujo"),
+        Genre("Shounen", "shounen"),
+        Genre("Slice of Life", "slice-of-life"),
+        Genre("Smut", "smut"),
+        Genre("Sports", "sports"),
+        Genre("Supernatural", "supernatural"),
+        Genre("Tragedy", "tragedy"),
+        Genre("Wuxia", "wuxia"),
+        Genre("Xianxia", "xianxia"),
+        Genre("Xuanhuan", "xuanhuan"),
+        Genre("Yaoi", "yaoi"),
+        Genre("Yuri", "yuri"),
+    )
 
     // ======================== Settings ========================
 

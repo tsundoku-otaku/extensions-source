@@ -24,7 +24,7 @@ open class LightNovelWPNovel(
     override val lang: String = "en",
 ) : HttpSource(), NovelSource {
 
-    // isNovelSource is provided by NovelSource interface with default value true
+    override val isNovelSource = true
 
     override val supportsLatest = true
     override val client = network.cloudflareClient

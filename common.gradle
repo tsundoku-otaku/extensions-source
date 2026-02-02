@@ -14,7 +14,7 @@ if (theme != null) evaluationDependsOn(theme.path)
 android {
     compileSdk AndroidConfig.compileSdk
 
-    namespace "eu.kanade.tachiyomi.extension"
+    namespace "app.mihonnovel.extension"
     sourceSets {
         main {
             manifest.srcFile layout.buildDirectory.file('tempAndroidManifest.xml')
@@ -31,12 +31,15 @@ android {
         versionCode theme == null ? extVersionCode : theme.baseVersionCode + overrideVersionCode
         versionName "1.4.$versionCode"
         base {
-            archivesName = "tachiyomi-$applicationIdSuffix-v$versionName"
+            archivesName = "mihonnovel-$applicationIdSuffix-v$versionName"
         }
         assert extClass.startsWith(".")
+        // Build full class path using eu.kanade.tachiyomi namespace (source code namespace)
+        // since the APK package name is app.mihonnovel.extension but source classes are in eu.kanade.tachiyomi
+        String fullExtClass = "eu.kanade.tachiyomi.extension." + project.parent.name + "." + project.name + extClass
         manifestPlaceholders = [
-                appName : "Tachiyomi: $extName",
-                extClass: extClass,
+                appName : "MihonNovel: $extName",
+                extClass: fullExtClass,
                 nsfw    : project.ext.find("isNsfw") ? 1 : 0,
                 novel   : project.ext.find("isNovel") ? 1 : 0,
         ]

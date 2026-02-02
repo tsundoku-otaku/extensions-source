@@ -142,7 +142,10 @@ class WtrLab : HttpSource(), NovelSource, ConfigurableSource {
         cipher.init(Cipher.DECRYPT_MODE, key, gcmSpec)
 
         val decryptedBytes = cipher.doFinal(ciphertextWithTag)
-        return String(decryptedBytes, Charsets.UTF_8)
+        val rawArray = String(decryptedBytes, Charsets.UTF_8)
+        Log.d("WtrLab", "Decrypted content length: ${rawArray.length}")
+        Log.d("WtrLab", "Decrypted content: ${rawArray.take(1000)}")
+        return rawArray
     }
 
     // Google Translate API for web translation mode
@@ -174,6 +177,7 @@ class WtrLab : HttpSource(), NovelSource, ConfigurableSource {
             add("te_lib")
         }
         val bodyString = json.encodeToString(JsonArray.serializer(), fullBody)
+        Log.d("WtrLab", "req body content: ${bodyString.take(1000)}")
 
         val request = Request.Builder()
             .url("https://translate-pa.googleapis.com/v1/translateHtml")
@@ -193,25 +197,27 @@ class WtrLab : HttpSource(), NovelSource, ConfigurableSource {
         Log.d("WtrLab", "Google Translate Response: $responseBody")
 
         return try {
-            // Parse response: format is [["<html string>"]]
+            // Parse response: format is [[translated_para1, translated_para2, ...]]
             val jsonResponse = json.parseToJsonElement(responseBody).jsonArray
 
             if (jsonResponse.isEmpty()) {
                 throw Exception("Empty response from Google Translate")
             }
 
-            // The response is [[text_content]] - outer array, then inner array, then the string
+            // The response is [[para1, para2, ...]] - outer array with inner array of translated paragraphs
             val innerArray = jsonResponse[0]
             if (innerArray !is JsonArray || innerArray.isEmpty()) {
                 throw Exception("Invalid response structure: expected array inside array")
             }
 
-            val translatedHtml = innerArray[0].jsonPrimitive.contentOrNull
-                ?: throw Exception("Could not extract translated text from response")
+            // Extract each translated paragraph and wrap in <p> tags
+            // Each element is a string like "<a i=N>translated text</a>"
+            val translatedParagraphs = innerArray.mapNotNull { element ->
+                element.jsonPrimitive.contentOrNull?.trim()
+            }.filter { it.isNotEmpty() }
 
-            // The HTML contains <a i=N> tags and encoded content, return it as-is
-            // Google Translate returns the full HTML with all formatting preserved
-            translatedHtml
+            // Join each paragraph with <p> tags
+            translatedParagraphs.joinToString("") { "<p>$it</p>" }
         } catch (e: Exception) {
             // Fallback to decrypted content if parsing fails
             Log.e("WtrLab", "Failed to parse Google Translate response: ${e.message}", e)
@@ -299,8 +305,14 @@ class WtrLab : HttpSource(), NovelSource, ConfigurableSource {
             val encryptedData = body.jsonPrimitive.content
             val decryptedText = decryptContent(encryptedData)
 
-            // Split decrypted text into paragraphs (assuming newline-separated)
-            decryptedText.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+            // Try to parse as JSON array first (decrypted content is often JSON)
+            try {
+                val decryptedJson = json.parseToJsonElement(decryptedText).jsonArray
+                decryptedJson.mapNotNull { it.jsonPrimitive.contentOrNull?.trim() }.filter { it.isNotEmpty() }
+            } catch (e: Exception) {
+                // Fallback: treat as plain text and split by newlines
+                decryptedText.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+            }
         }
 
         // Build HTML based on translation mode

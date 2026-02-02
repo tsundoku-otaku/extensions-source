@@ -30,8 +30,10 @@ class WebNovelNovels : HttpSource(), NovelSource {
     override val client = network.cloudflareClient
 
     override fun headersBuilder(): Headers.Builder = super.headersBuilder()
-        .add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        .add("Referer", baseUrl)
+        .set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .set("Accept-Language", "en-US,en;q=0.9")
+        .set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .set("Referer", baseUrl)
 
     // Popular
     override fun popularMangaRequest(page: Int): Request {
@@ -40,16 +42,79 @@ class WebNovelNovels : HttpSource(), NovelSource {
 
     override fun popularMangaParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
-        val mangas = document.select(".j_category_wrapper li").map { element ->
-            SManga.create().apply {
-                val thumb = element.selectFirst(".g_thumb")!!
-                title = thumb.attr("title")
-                setUrlWithoutDomain(thumb.attr("href"))
-                thumbnail_url = "https:" + element.selectFirst(".g_thumb > img")?.attr("data-original")
+        val finalUrl = response.request.url.toString()
+        val isMobile = finalUrl.contains("m.webnovel.com")
+
+        // Mobile and desktop sites have different structures
+        // Mobile: redirected from www.webnovel.com to m.webnovel.com
+        // Try multiple selectors to handle both formats
+        val mangas = mutableListOf<SManga>()
+
+        if (isMobile) {
+            // Mobile site - Try multiple selector patterns
+            // Pattern 1: Novel list items with a[href*=book]
+            document.select("a[href*='/book/']").forEach { link ->
+                val href = link.attr("href")
+                if (href.isBlank() || href.contains("/chapter/")) return@forEach
+
+                val title = link.attr("title").ifEmpty {
+                    link.selectFirst("img")?.attr("alt") ?: ""
+                }.ifEmpty {
+                    link.parent()?.selectFirst("h3, h4, .title, p")?.text()?.trim() ?: ""
+                }
+                if (title.isBlank()) return@forEach
+
+                val img = link.selectFirst("img") ?: link.parent()?.selectFirst("img")
+                val imgSrc = img?.let { imgEl ->
+                    imgEl.attr("data-original").ifEmpty { imgEl.attr("data-src") }.ifEmpty { imgEl.attr("src") }
+                } ?: ""
+
+                mangas.add(
+                    SManga.create().apply {
+                        this.title = title
+                        setUrlWithoutDomain(href.replace("m.webnovel.com", "www.webnovel.com"))
+                        thumbnail_url = if (imgSrc.isNotEmpty()) {
+                            if (imgSrc.startsWith("http")) imgSrc else "https:$imgSrc"
+                        } else {
+                            null
+                        }
+                    },
+                )
+            }
+
+            // Deduplicate by URL
+            val seen = mutableSetOf<String>()
+            mangas.removeAll { !seen.add(it.url) }
+        } else {
+            // Desktop site - TS ref: .j_category_wrapper li with .g_thumb
+            document.select(".j_category_wrapper li").forEach { element ->
+                val thumb = element.selectFirst(".g_thumb") ?: return@forEach
+                val img = element.selectFirst(".g_thumb > img") ?: return@forEach
+
+                mangas.add(
+                    SManga.create().apply {
+                        title = thumb.attr("title").ifEmpty { img.attr("alt") }
+                        setUrlWithoutDomain(thumb.attr("href"))
+                        thumbnail_url = img.attr("data-original").let { src ->
+                            if (src.isNotEmpty()) "https:$src" else "https:" + img.attr("src")
+                        }
+                    },
+                )
             }
         }
-        // Check if there are more pages - webnovel uses infinite scroll with pageIndex
-        val hasNextPage = mangas.isNotEmpty()
+
+        // TS ref: Pagination should continue while results exist and pagination elements present
+        // Check for pagination controls in both mobile and desktop formats
+        val hasNextPage = if (mangas.isEmpty()) {
+            false
+        } else if (isMobile) {
+            // Mobile: Check for "Load more" or pagination indicators
+            mangas.size >= 10 || document.select("[class*=load], [class*=more], [class*=page]").isNotEmpty()
+        } else {
+            // Desktop: Check for pagination elements or assume more if we got results
+            mangas.size >= 10 || document.select(".j_page, .pagination, [class*=page]").isNotEmpty()
+        }
+
         return MangasPage(mangas, hasNextPage)
     }
 
@@ -118,15 +183,64 @@ class WebNovelNovels : HttpSource(), NovelSource {
 
     override fun searchMangaParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
-        val mangas = document.select(".j_list_container li, .j_category_wrapper li").map { element ->
-            SManga.create().apply {
-                val thumb = element.selectFirst(".g_thumb")!!
-                title = thumb.attr("title")
-                setUrlWithoutDomain(thumb.attr("href"))
-                thumbnail_url = "https:" + (
-                    element.selectFirst(".g_thumb > img")?.attr("src")
-                        ?: element.selectFirst(".g_thumb > img")?.attr("data-original")
-                    )
+        val finalUrl = response.request.url.toString()
+        val isMobile = finalUrl.contains("m.webnovel.com")
+        val isSearch = finalUrl.contains("/search")
+
+        val mangas = mutableListOf<SManga>()
+
+        if (isMobile) {
+            // Mobile site - Try multiple selector patterns
+            document.select("a[href*='/book/']").forEach { link ->
+                val href = link.attr("href")
+                if (href.isBlank() || href.contains("/chapter/")) return@forEach
+
+                val title = link.attr("title").ifEmpty {
+                    link.selectFirst("img")?.attr("alt") ?: ""
+                }.ifEmpty {
+                    link.parent()?.selectFirst("h3, h4, .title, p")?.text()?.trim() ?: ""
+                }
+                if (title.isBlank()) return@forEach
+
+                val img = link.selectFirst("img") ?: link.parent()?.selectFirst("img")
+                val imgSrc = img?.let { imgEl ->
+                    imgEl.attr("data-original").ifEmpty { imgEl.attr("data-src") }.ifEmpty { imgEl.attr("src") }
+                } ?: ""
+
+                mangas.add(
+                    SManga.create().apply {
+                        this.title = title
+                        setUrlWithoutDomain(href.replace("m.webnovel.com", "www.webnovel.com"))
+                        thumbnail_url = if (imgSrc.isNotEmpty()) {
+                            if (imgSrc.startsWith("http")) imgSrc else "https:$imgSrc"
+                        } else {
+                            null
+                        }
+                    },
+                )
+            }
+
+            // Deduplicate by URL
+            val seen = mutableSetOf<String>()
+            mangas.removeAll { !seen.add(it.url) }
+        } else {
+            // Desktop site - Search uses .j_list_container with 'src', category uses .j_category_wrapper with 'data-original'
+            val selector = if (isSearch) ".j_list_container li" else ".j_category_wrapper li"
+            val imgAttr = if (isSearch) "src" else "data-original"
+
+            document.select(selector).forEach { element ->
+                val thumb = element.selectFirst(".g_thumb") ?: return@forEach
+                val img = element.selectFirst(".g_thumb > img") ?: return@forEach
+
+                mangas.add(
+                    SManga.create().apply {
+                        title = thumb.attr("title").ifEmpty { img.attr("alt") }
+                        setUrlWithoutDomain(thumb.attr("href"))
+                        // Search uses 'src', category uses 'data-original'
+                        val imgSrc = if (isSearch) img.attr("src") else img.attr("data-original").ifEmpty { img.attr("src") }
+                        thumbnail_url = if (imgSrc.startsWith("http")) imgSrc else "https:$imgSrc"
+                    },
+                )
             }
         }
         val hasNextPage = mangas.isNotEmpty()

@@ -35,7 +35,7 @@ open class MadaraNovel(
     override val lang: String = "en",
 ) : HttpSource(), NovelSource, ConfigurableSource {
 
-    // isNovelSource is provided by NovelSource interface with default value true
+    override val isNovelSource = true
 
     override val supportsLatest = true
     override val client = network.cloudflareClient
@@ -57,6 +57,13 @@ open class MadaraNovel(
      */
     protected val useNewChapterEndpoint: Boolean
         get() = preferences.getBoolean(USE_NEW_CHAPTER_ENDPOINT_PREF, useNewChapterEndpointDefault)
+
+    /**
+     * Whether to reverse the chapter list (show oldest first).
+     * Default is false (newest first).
+     */
+    protected val reverseChapterList: Boolean
+        get() = preferences.getBoolean(PREF_REVERSE_CHAPTERS, false)
 
     // LN Reader: Captcha title checks
     private val captchaTitles = listOf(
@@ -90,7 +97,12 @@ open class MadaraNovel(
     override fun popularMangaParse(response: Response): MangasPage {
         val doc = response.asJsoup()
         val mangas = parseNovels(doc)
-        val hasNextPage = doc.selectFirst(".pagination a:contains(next)") != null
+        // Check multiple pagination selectors for different Madara themes
+        val hasNextPage = doc.selectFirst(".pagination a:contains(next)") != null ||
+            doc.selectFirst("a.next.page-numbers") != null ||
+            doc.selectFirst(".nav-previous a") != null ||
+            doc.selectFirst(".wp-pagenavi a.nextpostslink") != null ||
+            doc.selectFirst(".page-item.next:not(.disabled) a") != null
         return MangasPage(mangas, hasNextPage)
     }
 
@@ -316,7 +328,8 @@ open class MadaraNovel(
             }
         }
 
-        return chapters.reversed()
+        // Return chapters in requested order
+        return if (reverseChapterList) chapters else chapters.reversed()
     }
 
     /**
@@ -423,6 +436,13 @@ open class MadaraNovel(
         }.also(screen::addPreference)
 
         SwitchPreferenceCompat(screen.context).apply {
+            key = PREF_REVERSE_CHAPTERS
+            title = "Reverse Chapter List"
+            summary = "Show chapters in oldest-to-newest order instead of newest-to-oldest."
+            setDefaultValue(false)
+        }.also(screen::addPreference)
+
+        SwitchPreferenceCompat(screen.context).apply {
             key = PREF_RAW_HTML
             title = "Return raw HTML"
             summary = "If enabled, returns the raw HTML of the chapter content instead of parsed text. Useful for custom parsers."
@@ -432,6 +452,7 @@ open class MadaraNovel(
 
     companion object {
         private const val USE_NEW_CHAPTER_ENDPOINT_PREF = "pref_use_new_chapter_endpoint"
+        private const val PREF_REVERSE_CHAPTERS = "pref_reverse_chapters"
         private const val PREF_RAW_HTML = "pref_raw_html"
     }
 

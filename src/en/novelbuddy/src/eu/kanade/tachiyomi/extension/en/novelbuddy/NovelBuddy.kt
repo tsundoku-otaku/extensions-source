@@ -178,7 +178,7 @@ class NovelBuddy : HttpSource(), NovelSource {
                 thumbnail_url = element.selectFirst("img")?.attr("data-src")?.let {
                     if (it.startsWith("//")) "https:$it" else it
                 }
-                url = if (novelUrl.startsWith("/")) novelUrl.substring(1) else novelUrl
+                url = normalizeRelativeUrl(novelUrl)
             }
         }
     }
@@ -251,12 +251,7 @@ class NovelBuddy : HttpSource(), NovelSource {
 
             val chapter = SChapter.create().apply {
                 name = chapterName
-                // Ensure URL starts with / but remove it since we add baseUrl later
-                url = when {
-                    chapterUrl.startsWith("http") -> chapterUrl
-                    chapterUrl.startsWith("/") -> chapterUrl.substring(1)
-                    else -> chapterUrl
-                }
+                url = normalizeRelativeUrl(chapterUrl)
 
                 // Parse release date
                 val releaseDateText = element.selectFirst(".chapter-update")?.text()?.trim()
@@ -302,6 +297,14 @@ class NovelBuddy : HttpSource(), NovelSource {
 
     override fun pageListParse(response: Response): List<Page> {
         return listOf(Page(0, response.request.url.toString(), null))
+    }
+    private fun normalizeRelativeUrl(url: String): String {
+        return url
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .removePrefix(baseUrl)
+            .removePrefix("//")
+            .removePrefix("/")
     }
 
     override fun imageUrlParse(response: Response) = ""

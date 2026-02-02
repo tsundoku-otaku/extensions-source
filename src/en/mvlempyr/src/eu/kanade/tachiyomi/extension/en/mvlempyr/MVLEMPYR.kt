@@ -21,6 +21,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import okhttp3.Headers
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.Jsoup
@@ -104,8 +105,62 @@ class MVLEMPYR : HttpSource(), NovelSource {
     }
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-        val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
-        return GET("$chapSite/wp-json/wp/v2/mvl-novels?per_page=20&page=$page&search=$encodedQuery", headers)
+        val url = "$chapSite/wp-json/wp/v2/mvl-novels".toHttpUrl().newBuilder()
+            .addQueryParameter("per_page", "20")
+            .addQueryParameter("page", page.toString())
+
+        if (query.isNotEmpty()) {
+            val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+            url.addQueryParameter("search", encodedQuery)
+        }
+
+        // Apply filters
+        filters.forEach { filter ->
+            when (filter) {
+                is SortFilter -> {
+                    when (filter.state) {
+                        0 -> url.addQueryParameter("orderby", "comment_count")
+                        1 -> url.addQueryParameter("orderby", "rating")
+                        2 -> url.addQueryParameter("orderby", "meta_value_num")
+                        3 -> url.addQueryParameter("orderby", "date")
+                    }
+                    url.addQueryParameter("order", "desc")
+                }
+                is GenreFilter -> {
+                    val includedGenres = filter.state.filter { it.isIncluded() }.map { it.id }
+                    val excludedGenres = filter.state.filter { it.isExcluded() }.map { it.id }
+
+                    if (includedGenres.isNotEmpty()) {
+                        includedGenres.forEach { id ->
+                            url.addQueryParameter("genres[]", id.toString())
+                        }
+                    }
+                    if (excludedGenres.isNotEmpty()) {
+                        excludedGenres.forEach { id ->
+                            url.addQueryParameter("genres_exclude[]", id.toString())
+                        }
+                    }
+                }
+                is TagFilter -> {
+                    val includedTags = filter.state.filter { it.isIncluded() }.map { it.id }
+                    val excludedTags = filter.state.filter { it.isExcluded() }.map { it.id }
+
+                    if (includedTags.isNotEmpty()) {
+                        includedTags.forEach { id ->
+                            url.addQueryParameter("tags[]", id.toString())
+                        }
+                    }
+                    if (excludedTags.isNotEmpty()) {
+                        excludedTags.forEach { id ->
+                            url.addQueryParameter("tags_exclude[]", id.toString())
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        return GET(url.build(), headers)
     }
 
     override fun searchMangaParse(response: Response): MangasPage {
@@ -289,10 +344,42 @@ class MVLEMPYR : HttpSource(), NovelSource {
     override fun imageUrlParse(response: Response): String = ""
 
     override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Filters"),
         SortFilter(),
+        Filter.Header("Include/Exclude Genres (Tap to toggle)"),
         GenreFilter(),
+        Filter.Header("Include/Exclude Tags (Tap to toggle)"),
         TagFilter(),
     )
+
+    private class SortFilter : Filter.Select<String>(
+        "Sort by",
+        arrayOf("Most Reviewed", "Best Rated", "Chapter Count", "Latest Added"),
+    )
+
+    private class GenreFilter : Filter.Group<GenreTriState>(
+        "Genres",
+        listOf(
+            GenreTriState("Action", 1), GenreTriState("Adult", 2), GenreTriState("Adventure", 3), GenreTriState("Comedy", 4), GenreTriState("Drama", 5), GenreTriState("Ecchi", 6), GenreTriState("Fan-Fiction", 7), GenreTriState("Fantasy", 8), GenreTriState("Gender Bender", 9), GenreTriState("Harem", 10), GenreTriState("Historical", 11), GenreTriState("Horror", 12),
+            GenreTriState("Josei", 13), GenreTriState("Martial Arts", 14), GenreTriState("Mature", 15), GenreTriState("Mecha", 16), GenreTriState("Mystery", 17), GenreTriState("Psychological", 18), GenreTriState("Romance", 19), GenreTriState("School Life", 20), GenreTriState("Sci-fi", 21), GenreTriState("Seinen", 22), GenreTriState("Shoujo", 23), GenreTriState("Shoujo Ai", 24),
+            GenreTriState("Shounen", 25), GenreTriState("Shounen Ai", 26), GenreTriState("Slice of Life", 27), GenreTriState("Smut", 28), GenreTriState("Sports", 29), GenreTriState("Supernatural", 30), GenreTriState("Tragedy", 31), GenreTriState("Wuxia", 32), GenreTriState("Xianxia", 33), GenreTriState("Xuanhuan", 34), GenreTriState("Yaoi", 35), GenreTriState("Yuri", 36),
+        ),
+    )
+
+    private class GenreTriState(name: String, val id: Int) : Filter.TriState(name)
+
+    private class TagFilter : Filter.Group<TagTriState>(
+        "Tags",
+        listOf(
+            TagTriState("Academy", 100), TagTriState("Antihero Protagonist", 101), TagTriState("Beast Companions", 102), TagTriState("Calm Protagonist", 103), TagTriState("Cheats", 104), TagTriState("Clever Protagonist", 105),
+            TagTriState("Cold Protagonist", 106), TagTriState("Cultivation", 107), TagTriState("Cunning Protagonist", 108), TagTriState("Dark", 109), TagTriState("Demons", 110), TagTriState("Dragons", 111), TagTriState("Dungeons", 112),
+            TagTriState("Fantasy World", 113), TagTriState("Female Protagonist", 114), TagTriState("Game Elements", 115), TagTriState("Gods", 116), TagTriState("Hidden Abilities", 117), TagTriState("Level System", 118),
+            TagTriState("Magic", 119), TagTriState("Male Protagonist", 120), TagTriState("Monsters", 121), TagTriState("Nobles", 122), TagTriState("Overpowered Protagonist", 123), TagTriState("Reincarnation", 124),
+            TagTriState("Revenge", 125), TagTriState("Royalty", 126), TagTriState("Second Chance", 127), TagTriState("System", 128), TagTriState("Transmigration", 129), TagTriState("Weak to Strong", 130),
+        ),
+    )
+
+    private class TagTriState(name: String, val id: Int) : Filter.TriState(name)
 
     private fun convertNovelId(code: BigInteger): BigInteger {
         val t = BigInteger("1999999997")
@@ -334,44 +421,4 @@ class MVLEMPYR : HttpSource(), NovelSource {
     private fun cleanHtml(html: String): String {
         return Jsoup.parse(html).text()
     }
-
-    private class SortFilter : Filter.Select<String>(
-        "Sort by",
-        arrayOf("Most Reviewed", "Best Rated", "Chapter Count", "Latest Added"),
-    )
-
-    private class GenreFilter : Filter.Group<Genre>(
-        "Genres",
-        listOf(
-            Genre("Action"), Genre("Adult"), Genre("Adventure"), Genre("Comedy"),
-            Genre("Drama"), Genre("Ecchi"), Genre("Fan-Fiction"), Genre("Fantasy"),
-            Genre("Gender Bender"), Genre("Harem"), Genre("Historical"), Genre("Horror"),
-            Genre("Josei"), Genre("Martial Arts"), Genre("Mature"), Genre("Mecha"),
-            Genre("Mystery"), Genre("Psychological"), Genre("Romance"), Genre("School Life"),
-            Genre("Sci-fi"), Genre("Seinen"), Genre("Shoujo"), Genre("Shoujo Ai"),
-            Genre("Shounen"), Genre("Shounen Ai"), Genre("Slice of Life"), Genre("Smut"),
-            Genre("Sports"), Genre("Supernatural"), Genre("Tragedy"), Genre("Wuxia"),
-            Genre("Xianxia"), Genre("Xuanhuan"), Genre("Yaoi"), Genre("Yuri"),
-        ),
-    )
-
-    private class Genre(name: String) : Filter.CheckBox(name)
-
-    private class TagFilter : Filter.Group<TagItem>(
-        "Tags",
-        listOf(
-            TagItem("Academy"), TagItem("Antihero Protagonist"), TagItem("Beast Companions"),
-            TagItem("Calm Protagonist"), TagItem("Cheats"), TagItem("Clever Protagonist"),
-            TagItem("Cold Protagonist"), TagItem("Cultivation"), TagItem("Cunning Protagonist"),
-            TagItem("Dark"), TagItem("Demons"), TagItem("Dragons"), TagItem("Dungeons"),
-            TagItem("Fantasy World"), TagItem("Female Protagonist"), TagItem("Game Elements"),
-            TagItem("Gods"), TagItem("Hidden Abilities"), TagItem("Level System"),
-            TagItem("Magic"), TagItem("Male Protagonist"), TagItem("Monsters"),
-            TagItem("Nobles"), TagItem("Overpowered Protagonist"), TagItem("Reincarnation"),
-            TagItem("Revenge"), TagItem("Royalty"), TagItem("Second Chance"),
-            TagItem("System"), TagItem("Transmigration"), TagItem("Weak to Strong"),
-        ),
-    )
-
-    private class TagItem(name: String) : Filter.CheckBox(name)
 }

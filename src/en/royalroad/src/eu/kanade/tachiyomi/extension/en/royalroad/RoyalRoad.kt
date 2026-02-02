@@ -280,6 +280,7 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
             }
         }
 
+        params["page"] = page.toString()
         val queryString = params.entries.joinToString("&") { "${it.key}=${it.value}" }
         return GET("$baseUrl/fictions/search?$queryString", headers)
     }
@@ -305,13 +306,32 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
             SManga.create().apply {
                 title = titleElement.attr("alt")
                 thumbnail_url = titleElement.attr("src").let { src ->
-                    if (src.startsWith("http")) src else "$baseUrl${src.removePrefix("/")}"
+                    when {
+                        src.startsWith("http") -> src
+                        src.startsWith("/") -> "$baseUrl$src"
+                        else -> "$baseUrl/$src"
+                    }
                 }
                 url = "${path[0]}/${path[1]}"
             }
         }
 
-        val hasNextPage = doc.select("li.next:not(.disabled)").isNotEmpty()
+        // RoyalRoad pagination: <ul class="pagination"><li><a data-page="X">Next ›</a></li>
+        // Check for Next link, › symbol, or numbered pages after current
+        val hasNextPage = run {
+            // Check for "Next ›" link
+            if (doc.select(".pagination a:contains(Next)").isNotEmpty()) return@run true
+            if (doc.select(".pagination a:contains(›)").isNotEmpty()) return@run true
+            if (doc.select(".pagination a:contains(»)").isNotEmpty()) return@run true
+
+            // Check for data-page attribute on next page
+            val currentPageEl = doc.selectFirst(".pagination .page-active a, .pagination li.active a")
+            val currentPage = currentPageEl?.attr("data-page")?.toIntOrNull() ?: 1
+            doc.select(".pagination a[data-page]").any { link ->
+                val pageNum = link.attr("data-page").toIntOrNull() ?: 0
+                pageNum > currentPage
+            }
+        }
         return MangasPage(novels, hasNextPage)
     }
 
@@ -323,22 +343,35 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
     override fun mangaDetailsParse(response: Response): SManga {
         val doc = Jsoup.parse(response.body.string())
 
-        val title = doc.select("h1").text()
-        val author = doc.select("a[href^=/profile/]").text()
-        val description = doc.select("div.description").html()
-            .replace("&nbsp;", " ")
-            .replace(Regex("\\n{3,}"), "\n\n")
-            .trim()
-        val status = when (doc.select("span.label-sm").getOrNull(1)?.text()) {
-            "ONGOING" -> SManga.ONGOING
-            "HIATUS" -> SManga.ON_HIATUS
-            "COMPLETED" -> SManga.COMPLETED
-            else -> SManga.UNKNOWN
-        }
-        val cover = doc.select("img.thumbnail").attr("src").let { src ->
-            if (src.startsWith("http")) src else "$baseUrl${src.removePrefix("/")}"
-        }
-        val genres = doc.select("span.tags a").joinToString(", ") { it.text() }
+        val title = doc.selectFirst("h1[property=name]")?.text()
+            ?: doc.selectFirst("h1")?.text() ?: ""
+        val author = doc.selectFirst("h4[property=author] a")?.text()
+            ?: doc.select("a[href^=/profile/]").first()?.text() ?: ""
+
+        // Description - get the hidden full description if available
+        val description = doc.selectFirst("div.description div.hidden-content")?.text()
+            ?: doc.selectFirst("div.description")?.text()
+            ?: ""
+
+        val status = doc.selectFirst("span.label-sm.bg-blue-dark, span.label-sm.bg-yellow, span.label-sm.bg-success")?.text()?.let { statusText ->
+            when (statusText.uppercase()) {
+                "ONGOING" -> SManga.ONGOING
+                "HIATUS" -> SManga.ON_HIATUS
+                "COMPLETED" -> SManga.COMPLETED
+                "DROPPED" -> SManga.CANCELLED
+                else -> SManga.UNKNOWN
+            }
+        } ?: SManga.UNKNOWN
+
+        val cover = doc.selectFirst("img.thumbnail, div.cover-art-container img")?.attr("src")?.let { src ->
+            when {
+                src.startsWith("http") -> src
+                src.startsWith("/") -> "$baseUrl$src"
+                else -> "$baseUrl/$src"
+            }
+        } ?: ""
+
+        val genres = doc.select("span.tags a, a.fiction-tag").joinToString(", ") { it.text() }
 
         // Extract chapters and volumes from script content
         val scriptContent = doc.select("script").joinToString("\n") { it.html() }

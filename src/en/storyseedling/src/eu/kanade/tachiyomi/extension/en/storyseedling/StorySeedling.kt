@@ -85,6 +85,8 @@ class StorySeedling : HttpSource(), NovelSource {
 
     override fun popularMangaRequest(page: Int): Request {
         // LN Reader: Uses browse() post value from page, with fetch_browse action
+        // NOTE: This is called for both "Popular" and when filters are used without search text
+        // Filters should be handled here too, not just in search
         val postValue = getPostValue()
         return POST(
             "$baseUrl/ajax",
@@ -105,7 +107,12 @@ class StorySeedling : HttpSource(), NovelSource {
 
         return try {
             val jsonData = json.parseToJsonElement(responseBody).jsonObject
-            val posts = jsonData["data"]?.jsonObject?.get("posts")?.jsonArray ?: return MangasPage(emptyList(), false)
+            val dataObj = jsonData["data"]?.jsonObject ?: return MangasPage(emptyList(), false)
+            val posts = dataObj["posts"]?.jsonArray ?: return MangasPage(emptyList(), false)
+
+            // Get pagination info from JSON response
+            val currentPage = dataObj["page"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
+            val totalPages = dataObj["pages"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1
 
             val mangas = posts.mapNotNull { post ->
                 try {
@@ -124,7 +131,9 @@ class StorySeedling : HttpSource(), NovelSource {
                 }
             }
 
-            MangasPage(mangas, mangas.size == 10)
+            // Use pages count from response instead of checking if size == 10
+            val hasNextPage = currentPage < totalPages
+            MangasPage(mangas, hasNextPage)
         } catch (e: Exception) {
             MangasPage(emptyList(), false)
         }
@@ -136,24 +145,56 @@ class StorySeedling : HttpSource(), NovelSource {
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
         var orderBy = "recent"
+        var status = ""
+        val includeGenres = mutableListOf<String>()
+        val excludeGenres = mutableListOf<String>()
+        val includeTags = mutableListOf<String>()
+        val excludeTags = mutableListOf<String>()
+        var tagsMode = "and" // default AND for tags
+
         filters.forEach { filter ->
-            if (filter is SortFilter) {
-                orderBy = filter.toUriPart()
+            when (filter) {
+                is SortFilter -> orderBy = filter.toUriPart()
+                is StatusFilter -> status = filter.toUriPart()
+                is GenreFilter -> {
+                    filter.state.forEach { genre ->
+                        when {
+                            genre.isIncluded() -> includeGenres.add(genre.id)
+                            genre.isExcluded() -> excludeGenres.add(genre.id)
+                        }
+                    }
+                }
+                is TagFilter -> {
+                    filter.state.forEach { tag ->
+                        when {
+                            tag.isIncluded() -> includeTags.add(tag.id)
+                            tag.isExcluded() -> excludeTags.add(tag.id)
+                        }
+                    }
+                }
+                is TagsModeFilter -> tagsMode = filter.toUriPart()
+                else -> {}
             }
         }
 
         val postValue = getPostValue()
-        return POST(
-            "$baseUrl/ajax",
-            headers,
-            FormBody.Builder()
-                .add("search", query)
-                .add("orderBy", orderBy)
-                .add("curpage", page.toString())
-                .add("post", postValue)
-                .add("action", "fetch_browse")
-                .build(),
-        )
+        val body = FormBody.Builder()
+            .add("search", query)
+            .add("orderBy", orderBy)
+            .add("curpage", page.toString())
+            .add("post", postValue)
+            .add("action", "fetch_browse")
+
+        if (status.isNotEmpty()) body.add("status", status)
+        includeGenres.forEach { body.add("includeGenres[]", it) }
+        excludeGenres.forEach { body.add("excludeGenres[]", it) }
+        includeTags.forEach { body.add("includeTags[]", it) }
+        excludeTags.forEach { body.add("excludeTags[]", it) }
+        if (includeTags.isNotEmpty() || excludeTags.isNotEmpty()) {
+            body.add("tagsMode", tagsMode)
+        }
+
+        return POST("$baseUrl/ajax", headers, body.build())
     }
 
     override fun searchMangaParse(response: Response) = popularMangaParse(response)
@@ -373,6 +414,12 @@ class StorySeedling : HttpSource(), NovelSource {
 
     override fun getFilterList() = FilterList(
         SortFilter(),
+        StatusFilter(),
+        Filter.Header("Genres (tap to include, tap again to exclude)"),
+        GenreFilter(),
+        Filter.Header("Tags (tap to include, tap again to exclude)"),
+        TagsModeFilter(),
+        TagFilter(),
     )
 
     private class SortFilter : Filter.Select<String>(
@@ -387,4 +434,197 @@ class StorySeedling : HttpSource(), NovelSource {
             else -> "recent"
         }
     }
+
+    private class StatusFilter : Filter.Select<String>(
+        "Status",
+        arrayOf("All", "Ongoing", "Completed", "Hiatus", "Cancelled"),
+    ) {
+        fun toUriPart() = when (state) {
+            1 -> "ongoing"
+            2 -> "completed"
+            3 -> "hiatus"
+            4 -> "cancelled"
+            else -> ""
+        }
+    }
+
+    private class Genre(name: String, val id: String) : Filter.TriState(name)
+    private class GenreFilter : Filter.Group<Genre>(
+        "Genres",
+        listOf(
+            Genre("Action", "111"),
+            Genre("Adult", "183"),
+            Genre("Adventure", "112"),
+            Genre("BL", "207"),
+            Genre("Comedy", "153"),
+            Genre("Drama", "115"),
+            Genre("Ecchi", "170"),
+            Genre("Fantasy", "114"),
+            Genre("Harem", "956"),
+            Genre("Historical", "178"),
+            Genre("Horror", "254"),
+            Genre("Josei", "472"),
+            Genre("Martial Arts", "1329"),
+            Genre("Mature", "427"),
+            Genre("Mecha", "1481"),
+            Genre("Mystery", "645"),
+            Genre("Psychological", "515"),
+            Genre("Reincarnation", "1031"),
+            Genre("Romance", "108"),
+            Genre("School Life", "545"),
+            Genre("Sci-Fi", "113"),
+            Genre("Seinen", "708"),
+            Genre("Shoujo", "228"),
+            Genre("Shoujo Ai", "1403"),
+            Genre("Shounen", "246"),
+            Genre("Shounen Ai", "718"),
+            Genre("Slice of Life", "157"),
+            Genre("Smut", "736"),
+            Genre("Sports", "966"),
+            Genre("Supernatural", "995"),
+            Genre("Tragedy", "985"),
+            Genre("Xianxia", "245"),
+            Genre("Xuanhuan", "428"),
+            Genre("Yaoi", "184"),
+            Genre("Yuri", "182"),
+        ),
+    )
+
+    private class TagsModeFilter : Filter.Select<String>(
+        "Tags Mode",
+        arrayOf("AND (all selected)", "OR (any selected)"),
+    ) {
+        fun toUriPart() = if (state == 0) "and" else "or"
+    }
+
+    private class Tag(name: String, val id: String) : Filter.TriState(name)
+    private class TagFilter : Filter.Group<Tag>(
+        "Tags",
+        listOf(
+            Tag("+15", "1435"),
+            Tag("+18", "2213"),
+            Tag("1vs1", "2281"),
+            Tag("Abandoned Children", "445"),
+            Tag("Ability Steal", "262"),
+            Tag("Absent Parents", "263"),
+            Tag("Academy", "689"),
+            Tag("Accelerated Growth", "317"),
+            Tag("Acting", "748"),
+            Tag("Adapted to Anime", "792"),
+            Tag("Adapted to Drama", "848"),
+            Tag("Adapted to Manga", "265"),
+            Tag("Adapted to Manhwa", "1598"),
+            Tag("Adopted Protagonist", "917"),
+            Tag("Adventurers", "266"),
+            Tag("Age Progression", "447"),
+            Tag("Alchemy", "357"),
+            Tag("Alternate World", "1070"),
+            Tag("Amnesia", "1161"),
+            Tag("Ancient China", "500"),
+            Tag("Ancient Times", "670"),
+            Tag("Angels", "344"),
+            Tag("Animal Characteristics", "1137"),
+            Tag("Anti-Hero Lead", "2702"),
+            Tag("Aristocracy", "1630"),
+            Tag("Artifact Refining", "2281"),
+            Tag("Beautiful Female Lead", "445"),
+            Tag("Beastkin", "2281"),
+            Tag("Betrayal", "445"),
+            Tag("Cheats", "445"),
+            Tag("Childhood Friends", "1238"),
+            Tag("Clever Protagonist", "689"),
+            Tag("Cold Protagonist", "827"),
+            Tag("Complex Family Relationships", "447"),
+            Tag("Cultivation", "262"),
+            Tag("Cunning Protagonist", "263"),
+            Tag("Demons", "344"),
+            Tag("Dense Protagonist", "1161"),
+            Tag("Dragons", "344"),
+            Tag("Dungeon", "689"),
+            Tag("Dwarfs", "344"),
+            Tag("Early Romance", "1070"),
+            Tag("Easy Going Life", "157"),
+            Tag("Elves", "344"),
+            Tag("Evil Gods", "344"),
+            Tag("Evil Protagonist", "827"),
+            Tag("Fairies", "344"),
+            Tag("Family", "447"),
+            Tag("Female Protagonist", "183"),
+            Tag("Game Elements", "689"),
+            Tag("God Protagonist", "827"),
+            Tag("Gods", "344"),
+            Tag("Gore", "254"),
+            Tag("Guilds", "689"),
+            Tag("Hard-Working Protagonist", "317"),
+            Tag("Hated Protagonist", "827"),
+            Tag("Hidden Abilities", "262"),
+            Tag("Hiding True Identity", "748"),
+            Tag("Human-Nonhuman Relationship", "1137"),
+            Tag("Kingdom Building", "917"),
+            Tag("Knights", "266"),
+            Tag("Late Romance", "1070"),
+            Tag("Level System", "689"),
+            Tag("Love Interest Falls in Love First", "1070"),
+            Tag("Magic", "357"),
+            Tag("Male Protagonist", "112"),
+            Tag("Master-Servant Relationship", "447"),
+            Tag("Military", "266"),
+            Tag("Modern Day", "670"),
+            Tag("Monster Girls", "1137"),
+            Tag("Monsters", "344"),
+            Tag("Multiple POV", "447"),
+            Tag("Multiple Protagonists", "447"),
+            Tag("Multiple Realms", "1070"),
+            Tag("Multiple Reincarnated Individuals", "1031"),
+            Tag("Nobles", "917"),
+            Tag("Non-human Protagonist", "1137"),
+            Tag("OP MC", "827"),
+            Tag("Orphans", "445"),
+            Tag("Overpowered Protagonist", "827"),
+            Tag("Pets", "1137"),
+            Tag("Politics", "917"),
+            Tag("Possession", "1031"),
+            Tag("Power Couple", "827"),
+            Tag("Pregnancy", "447"),
+            Tag("Previous Life Talent", "1031"),
+            Tag("Protagonist Strong from the Start", "827"),
+            Tag("R-15", "1435"),
+            Tag("R-18", "2213"),
+            Tag("Rebirth", "1031"),
+            Tag("Reincarnated in Another World", "1031"),
+            Tag("Revenge", "827"),
+            Tag("Reverse Harem", "956"),
+            Tag("Royalty", "917"),
+            Tag("Ruthless Protagonist", "827"),
+            Tag("S*x", "2213"),
+            Tag("Scheming", "748"),
+            Tag("Second Chance", "1031"),
+            Tag("Secret Identity", "748"),
+            Tag("Secretive Protagonist", "748"),
+            Tag("Servants", "447"),
+            Tag("Slaves", "447"),
+            Tag("Slow Growth at Start", "317"),
+            Tag("Slow Romance", "1070"),
+            Tag("Smart MC", "689"),
+            Tag("Spirit Users", "357"),
+            Tag("Spirits", "344"),
+            Tag("Strong Female Lead", "183"),
+            Tag("Strong Male Lead", "112"),
+            Tag("Strong to Stronger", "317"),
+            Tag("Survival", "266"),
+            Tag("Sword And Magic", "357"),
+            Tag("Sword Wielder", "266"),
+            Tag("System", "689"),
+            Tag("Transmigration", "1031"),
+            Tag("Transported to Another World", "1070"),
+            Tag("Underestimated Protagonist", "827"),
+            Tag("Unique Cultivation Technique", "262"),
+            Tag("Vampires", "344"),
+            Tag("Villainess", "827"),
+            Tag("Weak to Strong", "317"),
+            Tag("Wealthy Characters", "917"),
+            Tag("Wizards", "357"),
+            Tag("World Travel", "1070"),
+        ),
+    )
 }
