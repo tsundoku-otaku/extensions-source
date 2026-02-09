@@ -21,8 +21,8 @@ concurrency:
 env:
   CI_CHUNK_SIZE: 65
   IS_PR_CHECK: false
-  PUBLISH_REPOSITORY: mrissaoussama/extensions
-  SOURCE_REPOSITORY: mrissaoussama/extensions-source
+  PUBLISH_REPOSITORY: tsundoku-otaku/extensions
+  SOURCE_REPOSITORY: tsundoku-otaku/extensions-source
 
 jobs:
   prepare:
@@ -128,29 +128,22 @@ jobs:
 
       - name: Upload APKs (${{ matrix.chunk.number }})
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: "github.repository == 'keiyoushi/extensions-source'"
+        if: "github.repository == 'tsundoku-otaku/extensions-source'"
         with:
           name: "individual-apks-${{ matrix.chunk.number }}"
           path: "**/*.apk"
           retention-days: 1
 
       - name: Clean up CI files
-        run: rm -f signingkey.jks gradle-projects.txt
+        run: rm signingkey.jks
 
   publish:
     name: Publish extension repo
     needs: [prepare, build]
+    if: "github.repository == 'tsundoku-otaku/extensions-source'"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Skip publish when not running in SOURCE_REPOSITORY
-        run: |
-          # GITHUB_REPOSITORY is available automatically and is the current repository in the form owner/name
-          if [ "${GITHUB_REPOSITORY}" != "${SOURCE_REPOSITORY}" ]; then
-            echo "Not running in SOURCE_REPOSITORY (${SOURCE_REPOSITORY}), skipping publish job.";
-            exit 0;
-          fi
-
       - name: Download APK artifacts
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
