@@ -34,19 +34,19 @@ jobs:
       delete: ${{ steps.generate-matrices.outputs.delete }}
     steps:
       - name: Checkout main branch
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Java
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           java-version: 17
           distribution: temurin
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
+        uses: gradle/actions/setup-gradle@f29f5a9d7b09a7c6b29859002d29d24e1674c884 # v5.0.1
         with:
           cache-read-only: true
 
@@ -70,18 +70,19 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - name: Checkout main branch
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Java
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           java-version: 17
           distribution: temurin
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
+        uses: gradle/actions/setup-gradle@f29f5a9d7b09a7c6b29859002d29d24e1674c884 # v5.0.1
         with:
           cache-read-only: ${{ matrix.chunk.number > 1 }}
 
@@ -126,7 +127,8 @@ jobs:
           echo "Count:"; find . -type f -name "*.apk" | wc -l || true
 
       - name: Upload APKs (${{ matrix.chunk.number }})
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: "github.repository == 'keiyoushi/extensions-source'"
         with:
           name: "individual-apks-${{ matrix.chunk.number }}"
           path: "**/*.apk"
@@ -150,18 +152,18 @@ jobs:
           fi
 
       - name: Download APK artifacts
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: ~/apk-artifacts
 
       - name: Set up JDK
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           java-version: 17
           distribution: temurin
 
       - name: Checkout main branch
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: main
           path: main
@@ -196,73 +198,14 @@ jobs:
 
           python ./.github/scripts/create-repo.py
 
-      - name: Check remote access to publish repo
-        run: |
-          set -euo pipefail
-          echo "Checking access to https://github.com/${{ env.PUBLISH_REPOSITORY }} using BOT_PAT"
-          if [ -z "${{ secrets.BOT_PAT }}" ]; then
-            echo "BOT_PAT is empty or not set; checkout may fail"
-            exit 1
-          fi
-          REPO_URL="https://${{ secrets.BOT_PAT }}@github.com/${{ env.PUBLISH_REPOSITORY }}.git"
-          git ls-remote --heads "$REPO_URL" || { echo "git ls-remote failed"; exit 1; }
-        shell: bash
-
-      - name: Ensure publish repo initialized and checkout
-        run: |
-          set -euo pipefail
-          echo "Ensuring ${{ env.PUBLISH_REPOSITORY }} is initialized and checking out branch 'repo'"
-
-          # Pick token (BOT_PAT preferred, else PUBLISH_TOKEN)
-          if [ -n "${{ secrets.BOT_PAT }}" ]; then
-            TOKEN="${{ secrets.BOT_PAT }}"
-            echo "Using BOT_PAT"
-          elif [ -n "${{ secrets.PUBLISH_TOKEN }}" ]; then
-            TOKEN="${{ secrets.PUBLISH_TOKEN }}"
-            echo "Using PUBLISH_TOKEN"
-          else
-            echo "Error: no publish token available (BOT_PAT or PUBLISH_TOKEN required)"
-            exit 1
-          fi
-
-          OWNER_REPO="${{ env.PUBLISH_REPOSITORY }}"
-          OWNER="$(echo "$OWNER_REPO" | cut -d'/' -f1)"
-          REPO="$(echo "$OWNER_REPO" | cut -d'/' -f2)"
-
-          API_BASE="https://api.github.com/repos/$OWNER/$REPO"
-
-          # Check if remote has branches (404 means empty repository)
-          status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $TOKEN" "$API_BASE/branches")
-          echo "GitHub API branches status: $status"
-          if [ "$status" = "404" ] || [ "$status" = "204" ]; then
-            echo "Repository appears empty (no branches). Creating initial README via GitHub API."
-            content_b64=$(printf "# extensions repo\n" | base64 -w0)
-            payload="{\"message\": \"Initial commit from CI\", \"content\": \"${content_b64}\"}"
-            resp=$(curl -s -X PUT -H "Authorization: token $TOKEN" -H "Content-Type: application/json" -d "$payload" "$API_BASE/contents/README.md")
-            echo "Created initial commit: $(echo "$resp" | sed -n '1,2p')"
-          else
-            echo "Repository has branches or API returned $status; proceeding."
-          fi
-
-          # Build authenticated repo URL for git operations
-          REPO_URL="https://${TOKEN}@github.com/${OWNER}/${REPO}.git"
-
-          # If 'repo' branch exists remotely, clone it. Otherwise clone default and create 'repo' branch.
-          if git ls-remote --heads "$REPO_URL" repo | grep -q repo; then
-            echo "Branch 'repo' exists on remote. Cloning that branch..."
-            git clone --depth 1 --branch repo "$REPO_URL" repo
-          else
-            echo "Branch 'repo' does not exist. Cloning default branch..."
-            git clone --depth 1 "$REPO_URL" repo
-            pushd repo
-            # Create repo branch and push it up
-            git checkout -b repo
-            git push -u origin repo || true
-            popd
-          fi
-
-          echo "Checked out repository into ./repo"
-        shell: bash
+      - name: Checkout repo branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: keiyoushi/extensions
+          token: ${{ secrets.BOT_PAT }}
+          ref: repo
+          path: repo
+          persist-credentials: true
 
       - name: Merge and deploy repo
         env:
