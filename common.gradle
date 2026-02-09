@@ -83,8 +83,6 @@ def hasSigning = keystoreFile.exists() &&
             vcsInfo.include = false
         }
     }
-}
-
 
     dependenciesInfo {
         includeInApk = false
