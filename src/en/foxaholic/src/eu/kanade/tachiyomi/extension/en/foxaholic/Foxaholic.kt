@@ -6,11 +6,12 @@ import eu.kanade.tachiyomi.source.model.Page
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class Foxaholic : MadaraNovel(
-    baseUrl = "https://www.foxaholic.com",
-    name = "Foxaholic",
-    lang = "en",
-) {
+class Foxaholic :
+    MadaraNovel(
+        baseUrl = "https://www.foxaholic.com",
+        name = "Foxaholic",
+        lang = "en",
+    ) {
     // Uses new chapter endpoint (/ajax/chapters/) which returns clean chapter HTML
     // The old admin-ajax.php endpoint returns the full page instead of chapter list
     override val useNewChapterEndpointDefault = true
@@ -88,11 +89,9 @@ class Foxaholic : MadaraNovel(
      * Count the total length of paragraph content in an element.
      * Used to determine which content block has the most actual text.
      */
-    private fun countContentParagraphs(element: Element): Int {
-        return element.select("p").sumOf { p ->
-            val text = p.text()
-            // Only count paragraphs with substantial content (not just ads or buttons)
-            if (text.length > 20) text.length else 0
-        }
+    private fun countContentParagraphs(element: Element): Int = element.select("p").sumOf { p ->
+        val text = p.text()
+        // Only count paragraphs with substantial content (not just ads or buttons)
+        if (text.length > 20) text.length else 0
     }
 }

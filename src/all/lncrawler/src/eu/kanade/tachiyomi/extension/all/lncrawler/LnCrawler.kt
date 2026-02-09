@@ -25,7 +25,10 @@ import org.jsoup.Jsoup
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
+class LnCrawler :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "LnCrawler"
     override val baseUrl = "https://lncrawler.monster"
@@ -63,9 +66,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$apiUrl/novels/search/?page=$page&page_size=24&sort_by=popularity&sort_order=desc", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$apiUrl/novels/search/?page=$page&page_size=24&sort_by=popularity&sort_order=desc", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val searchResponse = json.decodeFromString<SearchResponse>(response.body.string())
@@ -80,9 +81,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$apiUrl/novels/search/?page=$page&page_size=24&sort_by=last_updated&sort_order=desc", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$apiUrl/novels/search/?page=$page&page_size=24&sort_by=last_updated&sort_order=desc", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -106,17 +105,21 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
                         url.append("&language=${filter.pairValues[filter.state].second}")
                     }
                 }
+
                 is SortFilter -> {
                     sortBy = filter.pairValues[filter.state].second
                 }
+
                 is SortOrderFilter -> {
                     sortOrder = filter.pairValues[filter.state].second
                 }
+
                 is MinRatingFilter -> {
                     if (filter.state.isNotBlank()) {
                         url.append("&min_rating=${filter.state}")
                     }
                 }
+
                 is TagFilter -> {
                     filter.state.split(",")
                         .map { it.trim() }
@@ -125,6 +128,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
                             url.append("&tag=${java.net.URLEncoder.encode(tag, "UTF-8")}")
                         }
                 }
+
                 is ExcludeTagFilter -> {
                     filter.state.split(",")
                         .map { it.trim() }
@@ -133,6 +137,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
                             url.append("&exclude_tag=${java.net.URLEncoder.encode(tag, "UTF-8")}")
                         }
                 }
+
                 is AuthorFilter -> {
                     filter.state.split(",")
                         .map { it.trim() }
@@ -141,6 +146,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
                             url.append("&author=${java.net.URLEncoder.encode(author, "UTF-8")}")
                         }
                 }
+
                 else -> {}
             }
         }
@@ -255,9 +261,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
         return GET("$apiUrl${chapter.url.replace("/chapter/", "/chapter/")}/", headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -277,6 +281,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
                 "h1", "h2", "h3" -> {
                     content.append("<h2>${element.text()}</h2>\n")
                 }
+
                 "p" -> {
                     // Check if paragraph contains only an image
                     val img = element.selectFirst("img")
@@ -297,6 +302,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 "img" -> {
                     val imgSrc = element.attr("src")
                     val fullUrl = if (imgSrc.startsWith("images/") && chapter.imagesPath != null) {
@@ -308,6 +314,7 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
                     }
                     content.append("<img src=\"$fullUrl\">\n")
                 }
+
                 else -> {
                     val text = element.text()?.trim()
                     if (!text.isNullOrEmpty()) {
@@ -324,32 +331,27 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            Filter.Header("Language"),
-            LanguageFilter("Language", languageOptions),
-            Filter.Separator(),
-            Filter.Header("Sorting"),
-            SortFilter("Sort By", sortOptions),
-            SortOrderFilter("Order", sortOrderOptions),
-            Filter.Separator(),
-            Filter.Header("Tags (comma-separated)"),
-            TagFilter("Include Tags"),
-            ExcludeTagFilter("Exclude Tags"),
-            Filter.Separator(),
-            MinRatingFilter("Minimum Rating (0-5)"),
-            AuthorFilter("Authors (comma-separated)"),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Language"),
+        LanguageFilter("Language", languageOptions),
+        Filter.Separator(),
+        Filter.Header("Sorting"),
+        SortFilter("Sort By", sortOptions),
+        SortOrderFilter("Order", sortOrderOptions),
+        Filter.Separator(),
+        Filter.Header("Tags (comma-separated)"),
+        TagFilter("Include Tags"),
+        ExcludeTagFilter("Exclude Tags"),
+        Filter.Separator(),
+        MinRatingFilter("Minimum Rating (0-5)"),
+        AuthorFilter("Authors (comma-separated)"),
+    )
 
-    class LanguageFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class LanguageFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
-    class SortFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class SortFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
-    class SortOrderFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class SortOrderFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
     class TagFilter(name: String) : Filter.Text(name)
     class ExcludeTagFilter(name: String) : Filter.Text(name)
@@ -415,15 +417,13 @@ class LnCrawler : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Helpers ========================
 
-    private fun novelToSManga(novel: NovelSearchResult): SManga {
-        return SManga.create().apply {
-            url = "/novels/${novel.preferedSource?.novelSlug ?: novel.slug}/${novel.preferedSource?.sourceSlug ?: ""}"
-            title = novel.title
-            thumbnail_url = novel.preferedSource?.coverMinUrl ?: novel.preferedSource?.coverUrl
-            author = novel.preferedSource?.authors?.firstOrNull()
-            description = novel.preferedSource?.synopsis?.let { Jsoup.parse(it).text() }
-            genre = novel.preferedSource?.tags?.take(5)?.joinToString(", ") ?: ""
-        }
+    private fun novelToSManga(novel: NovelSearchResult): SManga = SManga.create().apply {
+        url = "/novels/${novel.preferedSource?.novelSlug ?: novel.slug}/${novel.preferedSource?.sourceSlug ?: ""}"
+        title = novel.title
+        thumbnail_url = novel.preferedSource?.coverMinUrl ?: novel.preferedSource?.coverUrl
+        author = novel.preferedSource?.authors?.firstOrNull()
+        description = novel.preferedSource?.synopsis?.let { Jsoup.parse(it).text() }
+        genre = novel.preferedSource?.tags?.take(5)?.joinToString(", ") ?: ""
     }
 
     private fun getPreferredSource(novel: NovelDetail): SourceInfo? {

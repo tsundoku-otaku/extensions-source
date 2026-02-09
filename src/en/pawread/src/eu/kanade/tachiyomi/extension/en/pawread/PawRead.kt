@@ -16,7 +16,9 @@ import org.jsoup.nodes.Document
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class PawRead : HttpSource(), NovelSource {
+class PawRead :
+    HttpSource(),
+    NovelSource {
 
     override val name = "PawRead"
     override val baseUrl = "https://m.pawread.com"
@@ -27,9 +29,7 @@ class PawRead : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/list/?sort=click&page=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/list/?sort=click&page=$page", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val doc = response.asJsoup()
@@ -40,9 +40,7 @@ class PawRead : HttpSource(), NovelSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/list/?sort=update&page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/list/?sort=update&page=$page", headers)
 
     override fun latestUpdatesParse(response: Response) = popularMangaParse(response)
 
@@ -66,16 +64,21 @@ class PawRead : HttpSource(), NovelSource {
                     val genre = filter.toUriPart()
                     if (genre.isNotEmpty()) filterValues.add(genre)
                 }
+
                 is StatusFilter -> {
                     val status = filter.toUriPart()
                     if (status.isNotEmpty()) filterValues.add(status)
                 }
+
                 is LangFilter -> {
                     val lang = filter.toUriPart()
                     if (lang.isNotEmpty()) filterValues.add(lang)
                 }
+
                 is SortFilter -> sort = filter.toUriPart()
+
                 is OrderFilter -> order = if (filter.state) "-" else ""
+
                 else -> {}
             }
         }
@@ -154,9 +157,12 @@ class PawRead : HttpSource(), NovelSource {
     private fun parseStatus(text: String): Int = when {
         text.contains("Ongoing", ignoreCase = true) ||
             text.contains("lianzai", ignoreCase = true) -> SManga.ONGOING
+
         text.contains("Completed", ignoreCase = true) ||
             text.contains("wanjie", ignoreCase = true) -> SManga.COMPLETED
+
         text.contains("Hiatus", ignoreCase = true) -> SManga.ON_HIATUS
+
         else -> SManga.UNKNOWN
     }
 
@@ -210,9 +216,7 @@ class PawRead : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.encodedPath))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.encodedPath))
 
     override fun imageUrlParse(response: Response): String = ""
 
@@ -247,10 +251,11 @@ class PawRead : HttpSource(), NovelSource {
         OrderFilter(),
     )
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Completed", "Ongoing", "Hiatus"),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Completed", "Ongoing", "Hiatus"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "wanjie"
             2 -> "lianzai"
@@ -259,10 +264,11 @@ class PawRead : HttpSource(), NovelSource {
         }
     }
 
-    private class LangFilter : Filter.Select<String>(
-        "Language",
-        arrayOf("All", "Chinese", "Korean", "Japanese"),
-    ) {
+    private class LangFilter :
+        Filter.Select<String>(
+            "Language",
+            arrayOf("All", "Chinese", "Korean", "Japanese"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "chinese"
             2 -> "korean"
@@ -271,10 +277,11 @@ class PawRead : HttpSource(), NovelSource {
         }
     }
 
-    private class SortFilter : Filter.Select<String>(
-        "Sort By",
-        arrayOf("Clicks", "Time Updated", "Time Posted"),
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort By",
+            arrayOf("Clicks", "Time Updated", "Time Posted"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "click"
             1 -> "update"
@@ -285,11 +292,12 @@ class PawRead : HttpSource(), NovelSource {
 
     private class OrderFilter : Filter.CheckBox("Ascending Order", false)
 
-    private class GenreFilter : Filter.Select<String>(
-        "Genre",
-        genres.map { it.first }.toTypedArray(),
-        0,
-    ) {
+    private class GenreFilter :
+        Filter.Select<String>(
+            "Genre",
+            genres.map { it.first }.toTypedArray(),
+            0,
+        ) {
         fun toUriPart() = genres[state].second
     }
 

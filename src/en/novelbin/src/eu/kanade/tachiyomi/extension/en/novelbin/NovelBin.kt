@@ -7,11 +7,12 @@ import eu.kanade.tachiyomi.util.asJsoup
 import okhttp3.Response
 import org.jsoup.nodes.Element
 
-class NovelBin : ReadNovelFull(
-    name = "NovelBin",
-    baseUrl = "https://novelbin.com",
-    lang = "en",
-) {
+class NovelBin :
+    ReadNovelFull(
+        name = "NovelBin",
+        baseUrl = "https://novelbin.com",
+        lang = "en",
+    ) {
     override val latestPage = "sort/latest"
 
     // NovelBin uses div.row[itemscope] for popular/latest lists
@@ -63,9 +64,11 @@ class NovelBin : ReadNovelFull(
                     author = element.select("a").joinToString { it.text().trim() }
                         .ifEmpty { text.substringAfter(":").trim() }
                 }
+
                 text.contains("Genre", ignoreCase = true) -> {
                     genre = element.select("a").joinToString { it.text().trim() }
                 }
+
                 text.contains("Status", ignoreCase = true) -> {
                     status = when {
                         text.contains("Ongoing", ignoreCase = true) -> SManga.ONGOING

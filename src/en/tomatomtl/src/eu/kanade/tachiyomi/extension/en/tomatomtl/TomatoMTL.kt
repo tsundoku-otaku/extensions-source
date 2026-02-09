@@ -54,7 +54,10 @@ import javax.crypto.spec.SecretKeySpec
 @Serializable
 data class SourceItem(val id: String, val name: String)
 
-class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
+class TomatoMTL :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "TomatoMTL"
     override val baseUrl = "https://tomatomtl.com"
@@ -316,16 +319,19 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
                             put("update_status", filter.toUriPart())
                         }
                     }
+
                     is SearchWordCountFilter -> {
                         if (filter.state > 0) {
                             put("word_count", filter.toUriPart())
                         }
                     }
+
                     is SearchSortFilter -> {
                         if (filter.state > 0) {
                             put("sort_order", filter.toUriPart())
                         }
                     }
+
                     else -> {}
                 }
             }
@@ -378,7 +384,9 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
         // Extract page number from request URL
         val page = try {
             requestUrl.substringAfter("page=").substringBefore("&").toIntOrNull() ?: 1
-        } catch (e: Exception) { 1 }
+        } catch (e: Exception) {
+            1
+        }
 
         return try {
             val jsonResult = json.parseToJsonElement(decrypted).jsonObject
@@ -394,8 +402,12 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
             // Pagination logic - garden API uses "has_more" or check array size
             val hasMore = when {
                 jsonResult["has_more"]?.jsonPrimitive?.booleanOrNull != null -> jsonResult["has_more"]?.jsonPrimitive?.booleanOrNull ?: false
+
                 jsonResult["hasMore"]?.jsonPrimitive?.booleanOrNull != null -> jsonResult["hasMore"]?.jsonPrimitive?.booleanOrNull ?: false
-                books.size >= 20 -> true // If we got 20 items, assume more pages
+
+                books.size >= 20 -> true
+
+                // If we got 20 items, assume more pages
                 else -> false
             }
 
@@ -604,22 +616,18 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET("$baseUrl${manga.url}", headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET("$baseUrl${manga.url}", headers)
 
     /**
      * Override fetchMangaDetails to handle garden novels differently.
      * Garden novel pages require login, so we fetch details from garden-stats API instead.
      */
-    override fun fetchMangaDetails(manga: SManga): rx.Observable<SManga> {
-        return if (manga.url.contains("/garden/")) {
-            // For garden novels, fetch details from garden-stats API
-            fetchGardenMangaDetails(manga)
-        } else {
-            // For regular novels, use default HTML parsing
-            super.fetchMangaDetails(manga)
-        }
+    override fun fetchMangaDetails(manga: SManga): rx.Observable<SManga> = if (manga.url.contains("/garden/")) {
+        // For garden novels, fetch details from garden-stats API
+        fetchGardenMangaDetails(manga)
+    } else {
+        // For regular novels, use default HTML parsing
+        super.fetchMangaDetails(manga)
     }
 
     private fun fetchGardenMangaDetails(manga: SManga): rx.Observable<SManga> {
@@ -744,9 +752,7 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
     /**
      * Convert a string to hex representation
      */
-    private fun stringToHex(str: String): String {
-        return str.toByteArray(Charsets.UTF_8).joinToString("") { "%02x".format(it) }
-    }
+    private fun stringToHex(str: String): String = str.toByteArray(Charsets.UTF_8).joinToString("") { "%02x".format(it) }
 
     /**
      * Clean HTML tags and entities from text using Jsoup
@@ -866,23 +872,19 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
     /**
      * Decode Unicode escape sequences like \u4e00 to actual characters
      */
-    private fun decodeUnicodeEscapes(input: String): String {
-        return try {
-            val pattern = Regex("""\\u([0-9a-fA-F]{4})""")
-            pattern.replace(input) { matchResult ->
-                val codePoint = matchResult.groupValues[1].toInt(16)
-                codePoint.toChar().toString()
-            }
-        } catch (e: Exception) {
-            input
+    private fun decodeUnicodeEscapes(input: String): String = try {
+        val pattern = Regex("""\\u([0-9a-fA-F]{4})""")
+        pattern.replace(input) { matchResult ->
+            val codePoint = matchResult.groupValues[1].toInt(16)
+            codePoint.toChar().toString()
         }
+    } catch (e: Exception) {
+        input
     }
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET("$baseUrl${manga.url}", headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET("$baseUrl${manga.url}", headers)
 
     private fun fetchGardenChapterList(manga: SManga): rx.Observable<List<SChapter>> {
         return rx.Observable.fromCallable {
@@ -1057,12 +1059,10 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
     /**
      * Override fetchChapterList to use the catalog API for non-garden novels
      */
-    override fun fetchChapterList(manga: SManga): rx.Observable<List<SChapter>> {
-        return if (manga.url.contains("/garden/")) {
-            fetchGardenChapterList(manga)
-        } else {
-            fetchRegularChapterList(manga)
-        }
+    override fun fetchChapterList(manga: SManga): rx.Observable<List<SChapter>> = if (manga.url.contains("/garden/")) {
+        fetchGardenChapterList(manga)
+    } else {
+        fetchRegularChapterList(manga)
     }
 
     /**
@@ -1169,13 +1169,9 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Pages ========================
 
-    override fun pageListRequest(chapter: SChapter): Request {
-        return GET("$baseUrl${chapter.url}", headers)
-    }
+    override fun pageListRequest(chapter: SChapter): Request = GET("$baseUrl${chapter.url}", headers)
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     override fun fetchPageList(chapter: SChapter): rx.Observable<List<Page>> {
         val url = if (chapter.url.startsWith("http")) chapter.url else "$baseUrl${chapter.url}"
@@ -1417,36 +1413,32 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
      * Decrypt content using AES-CBC with the unlock code
      * The unlock code is base64 encoded, we decode it and take first 16 bytes for AES-128
      */
-    private fun decryptContent(ivBase64: String, encryptedBase64: String): String {
-        return try {
-            // Decode the key from base64 and take first 16 bytes for AES-128
-            val keyBytes = Base64.decode(unlockCode, Base64.DEFAULT).copyOf(16)
+    private fun decryptContent(ivBase64: String, encryptedBase64: String): String = try {
+        // Decode the key from base64 and take first 16 bytes for AES-128
+        val keyBytes = Base64.decode(unlockCode, Base64.DEFAULT).copyOf(16)
 
-            val iv = Base64.decode(ivBase64, Base64.DEFAULT)
-            val encrypted = Base64.decode(encryptedBase64, Base64.DEFAULT)
+        val iv = Base64.decode(ivBase64, Base64.DEFAULT)
+        val encrypted = Base64.decode(encryptedBase64, Base64.DEFAULT)
 
-            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-            val keySpec = SecretKeySpec(keyBytes, "AES")
-            val ivSpec = IvParameterSpec(iv)
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        val keySpec = SecretKeySpec(keyBytes, "AES")
+        val ivSpec = IvParameterSpec(iv)
 
-            cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
-            val decrypted = cipher.doFinal(encrypted)
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
+        val decrypted = cipher.doFinal(encrypted)
 
-            String(decrypted, Charsets.UTF_8)
-        } catch (e: Exception) {
-            Log.e("TomatoMTL", "Decryption error: ${e.message}")
-            ""
-        }
+        String(decrypted, Charsets.UTF_8)
+    } catch (e: Exception) {
+        Log.e("TomatoMTL", "Decryption error: ${e.message}")
+        ""
     }
 
-    private fun hexToString(hex: String): String {
-        return try {
-            hex.chunked(2)
-                .map { it.toInt(16).toChar() }
-                .joinToString("")
-        } catch (e: Exception) {
-            ""
-        }
+    private fun hexToString(hex: String): String = try {
+        hex.chunked(2)
+            .map { it.toInt(16).toChar() }
+            .joinToString("")
+    } catch (e: Exception) {
+        ""
     }
 
     private fun needsTranslation(content: String): Boolean {
@@ -1455,27 +1447,23 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
         return matches > content.length * 0.1
     }
 
-    private fun formatContent(content: String): String {
-        return try {
-            val jsonArray = json.parseToJsonElement(content).jsonArray
-            jsonArray.mapNotNull { it.jsonPrimitive.contentOrNull }
-                .joinToString("\n\n") { "<p>$it</p>" }
-        } catch (e: Exception) {
-            content.split("\n")
-                .filter { it.isNotBlank() }
-                .joinToString("\n") { "<p>$it</p>" }
-        }
+    private fun formatContent(content: String): String = try {
+        val jsonArray = json.parseToJsonElement(content).jsonArray
+        jsonArray.mapNotNull { it.jsonPrimitive.contentOrNull }
+            .joinToString("\n\n") { "<p>$it</p>" }
+    } catch (e: Exception) {
+        content.split("\n")
+            .filter { it.isNotBlank() }
+            .joinToString("\n") { "<p>$it</p>" }
     }
 
-    private fun translateContent(content: String, mode: String): String {
-        return when (mode) {
-            "google" -> translateWithGoogle(content)
-            "google2" -> translateWithGoogle2(content)
-            "gemini" -> translateWithGemini(content)
-            "bing" -> translateWithBing(content)
-            "yandex" -> translateWithYandex(content)
-            else -> formatContent(content)
-        }
+    private fun translateContent(content: String, mode: String): String = when (mode) {
+        "google" -> translateWithGoogle(content)
+        "google2" -> translateWithGoogle2(content)
+        "gemini" -> translateWithGemini(content)
+        "bing" -> translateWithBing(content)
+        "yandex" -> translateWithYandex(content)
+        else -> formatContent(content)
     }
 
     private fun translateWithGoogle(content: String): String {
@@ -1681,8 +1669,7 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Preferences ========================
 
-    private fun getTranslationMode(): String =
-        preferences.getString(TRANSLATION_MODE_KEY, "bing") ?: "bing"
+    private fun getTranslationMode(): String = preferences.getString(TRANSLATION_MODE_KEY, "bing") ?: "bing"
 
     private fun shouldCacheSources(): Boolean = preferences.getBoolean(CACHE_SOURCES_KEY, true)
 
@@ -1870,104 +1857,113 @@ class TomatoMTL : HttpSource(), NovelSource, ConfigurableSource {
 // ======================== Filter Classes ========================
 
 // Search Filters
-private class SearchStatusFilter : SelectFilter(
-    "Update Status",
-    arrayOf(
-        Pair("Any", ""),
-        Pair("Completed", "completed"),
-        Pair("Completed within 6 months", "completed_6m"),
-        Pair("Ongoing", "ongoing"),
-        Pair("Updated within 3 days", "3day"),
-        Pair("Updated within 7 days", "7day"),
-        Pair("Updated within 1 month", "1month"),
-    ),
-)
+private class SearchStatusFilter :
+    SelectFilter(
+        "Update Status",
+        arrayOf(
+            Pair("Any", ""),
+            Pair("Completed", "completed"),
+            Pair("Completed within 6 months", "completed_6m"),
+            Pair("Ongoing", "ongoing"),
+            Pair("Updated within 3 days", "3day"),
+            Pair("Updated within 7 days", "7day"),
+            Pair("Updated within 1 month", "1month"),
+        ),
+    )
 
-private class SearchWordCountFilter : SelectFilter(
-    "Word Count",
-    arrayOf(
-        Pair("Any", ""),
-        Pair("≤ 100K words", "lte10"),
-        Pair("≤ 300K words", "lte30"),
-        Pair("≤ 500K words", "lte50"),
-        Pair("≥ 300K words", "gte30"),
-        Pair("≥ 500K words", "gte50"),
-        Pair("≥ 1M words", "gte100"),
-        Pair("≥ 2M words", "gte200"),
-        Pair("≥ 3M words", "gte300"),
-        Pair("≥ 5M words", "gte500"),
-    ),
-)
+private class SearchWordCountFilter :
+    SelectFilter(
+        "Word Count",
+        arrayOf(
+            Pair("Any", ""),
+            Pair("≤ 100K words", "lte10"),
+            Pair("≤ 300K words", "lte30"),
+            Pair("≤ 500K words", "lte50"),
+            Pair("≥ 300K words", "gte30"),
+            Pair("≥ 500K words", "gte50"),
+            Pair("≥ 1M words", "gte100"),
+            Pair("≥ 2M words", "gte200"),
+            Pair("≥ 3M words", "gte300"),
+            Pair("≥ 5M words", "gte500"),
+        ),
+    )
 
-private class SearchSortFilter : SelectFilter(
-    "Sort Order",
-    arrayOf(
-        Pair("Default", ""),
-        Pair("Newly Created", "new_book"),
-        Pair("High Rating", "score"),
-        Pair("Word Count", "word_number"),
-        Pair("New Update", "new_update"),
-    ),
-)
+private class SearchSortFilter :
+    SelectFilter(
+        "Sort Order",
+        arrayOf(
+            Pair("Default", ""),
+            Pair("Newly Created", "new_book"),
+            Pair("High Rating", "score"),
+            Pair("Word Count", "word_number"),
+            Pair("New Update", "new_update"),
+        ),
+    )
 
 // Category Browse Filters
-private class CategoryFilter(categories: List<Pair<String, String>>) : SelectFilter(
-    "Category",
-    categories.map { Pair(it.second, it.first) }.toTypedArray(),
-)
+private class CategoryFilter(categories: List<Pair<String, String>>) :
+    SelectFilter(
+        "Category",
+        categories.map { Pair(it.second, it.first) }.toTypedArray(),
+    )
 
-private class GenderFilter : SelectFilter(
-    "Gender",
-    arrayOf(
-        Pair("Male", "1"),
-        Pair("Female", "0"),
-    ),
-)
+private class GenderFilter :
+    SelectFilter(
+        "Gender",
+        arrayOf(
+            Pair("Male", "1"),
+            Pair("Female", "0"),
+        ),
+    )
 
-private class CreationStatusFilter : SelectFilter(
-    "Creation Status",
-    arrayOf(
-        Pair("All", "creation_status_default"),
-        Pair("Completed", "creation_status_end"),
-        Pair("Completed within 6 months", "creation_status_half_year_end"),
-        Pair("Ongoing", "creation_status_loading"),
-        Pair("Updated within 3 days", "creation_status_3day_update"),
-        Pair("Updated within 7 days", "creation_status_7day_update"),
-        Pair("Updated within 1 month", "creation_status_1month_update"),
-    ),
-)
+private class CreationStatusFilter :
+    SelectFilter(
+        "Creation Status",
+        arrayOf(
+            Pair("All", "creation_status_default"),
+            Pair("Completed", "creation_status_end"),
+            Pair("Completed within 6 months", "creation_status_half_year_end"),
+            Pair("Ongoing", "creation_status_loading"),
+            Pair("Updated within 3 days", "creation_status_3day_update"),
+            Pair("Updated within 7 days", "creation_status_7day_update"),
+            Pair("Updated within 1 month", "creation_status_1month_update"),
+        ),
+    )
 
-private class WordCountFilterCategory : SelectFilter(
-    "Word Count",
-    arrayOf(
-        Pair("All", "word_num_default"),
-        Pair("Under 100k", "word_num_lte10"),
-        Pair("Under 300k", "word_num_lte30"),
-        Pair("Under 500k", "word_num_lte50"),
-        Pair("Over 300k", "word_num_gte30"),
-        Pair("Over 500k", "word_num_gte50"),
-        Pair("Over 1M", "word_num_gte100"),
-        Pair("Over 2M", "word_num_gte200"),
-        Pair("Over 3M", "word_num_gte300"),
-        Pair("Over 5M", "word_num_gte500"),
-    ),
-)
+private class WordCountFilterCategory :
+    SelectFilter(
+        "Word Count",
+        arrayOf(
+            Pair("All", "word_num_default"),
+            Pair("Under 100k", "word_num_lte10"),
+            Pair("Under 300k", "word_num_lte30"),
+            Pair("Under 500k", "word_num_lte50"),
+            Pair("Over 300k", "word_num_gte30"),
+            Pair("Over 500k", "word_num_gte50"),
+            Pair("Over 1M", "word_num_gte100"),
+            Pair("Over 2M", "word_num_gte200"),
+            Pair("Over 3M", "word_num_gte300"),
+            Pair("Over 5M", "word_num_gte500"),
+        ),
+    )
 
-private class SortFilterCategory : SelectFilter(
-    "Sort By",
-    arrayOf(
-        Pair("Default", "sort_default"),
-        Pair("New Books", "sort_new_book"),
-        Pair("High Rating", "sort_score"),
-        Pair("Word Count", "sort_word_number"),
-    ),
-)
+private class SortFilterCategory :
+    SelectFilter(
+        "Sort By",
+        arrayOf(
+            Pair("Default", "sort_default"),
+            Pair("New Books", "sort_new_book"),
+            Pair("High Rating", "sort_score"),
+            Pair("Word Count", "sort_word_number"),
+        ),
+    )
 
 // Source Filter
-private class SourceFilter(sources: List<Pair<String, String>>) : SelectFilter(
-    "Garden Source",
-    (listOf(Pair("All Sources", "")) + sources.map { Pair(it.second, it.first) }).toTypedArray(),
-)
+private class SourceFilter(sources: List<Pair<String, String>>) :
+    SelectFilter(
+        "Garden Source",
+        (listOf(Pair("All Sources", "")) + sources.map { Pair(it.second, it.first) }).toTypedArray(),
+    )
 
 // Base select filter
 private open class SelectFilter(

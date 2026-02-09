@@ -7,11 +7,12 @@ import eu.kanade.tachiyomi.source.model.Page
  * Requiem Translations extension.
  * Uses LightNovelWP template with custom content decryption.
  */
-class RequiemTranslations : LightNovelWPNovel(
-    baseUrl = "https://requiemtls.com",
-    name = "Requiem Translations",
-    lang = "en",
-) {
+class RequiemTranslations :
+    LightNovelWPNovel(
+        baseUrl = "https://requiemtls.com",
+        name = "Requiem Translations",
+        lang = "en",
+    ) {
 
     /**
      * Decodes obfuscated text from Requiem Translations.

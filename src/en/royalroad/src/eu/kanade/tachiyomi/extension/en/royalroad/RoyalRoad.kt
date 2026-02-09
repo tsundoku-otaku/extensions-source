@@ -24,7 +24,10 @@ import org.jsoup.nodes.Element
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
+class RoyalRoad :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "Royal Road"
     override val baseUrl = "https://www.royalroad.com"
@@ -172,9 +175,7 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     // Popular novels
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/fictions/search?page=$page&orderBy=popularity", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/fictions/search?page=$page&orderBy=popularity", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val doc = Jsoup.parse(response.body.string())
@@ -182,9 +183,7 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     // Latest updates
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/fictions/search?page=$page&orderBy=last_update", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/fictions/search?page=$page&orderBy=last_update", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage {
         val doc = Jsoup.parse(response.body.string())
@@ -207,11 +206,13 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
                         params["keyword"] = filter.state
                     }
                 }
+
                 is AuthorFilter -> {
                     if (filter.state.isNotEmpty()) {
                         params["author"] = filter.state
                     }
                 }
+
                 is GenreFilter -> {
                     filter.state.forEach { genre ->
                         when {
@@ -220,6 +221,7 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 is TagFilter -> {
                     filter.state.forEach { tag ->
                         when {
@@ -228,6 +230,7 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 is ContentWarningFilter -> {
                     filter.state.forEach { warning ->
                         when {
@@ -236,46 +239,55 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 is MinPagesFilter -> {
                     if (filter.state.isNotEmpty() && filter.state != "0") {
                         params["minPages"] = filter.state
                     }
                 }
+
                 is MaxPagesFilter -> {
                     if (filter.state.isNotEmpty() && filter.state != "20000") {
                         params["maxPages"] = filter.state
                     }
                 }
+
                 is MinRatingFilter -> {
                     if (filter.state.isNotEmpty() && filter.state != "0.0") {
                         params["minRating"] = filter.state
                     }
                 }
+
                 is MaxRatingFilter -> {
                     if (filter.state.isNotEmpty() && filter.state != "5.0") {
                         params["maxRating"] = filter.state
                     }
                 }
+
                 is StatusFilter -> {
                     if (filter.state != 0) {
                         params["status"] = filter.toUriPart()
                     }
                 }
+
                 is OrderByFilter -> {
                     if (filter.state != 0) {
                         params["orderBy"] = filter.toUriPart()
                     }
                 }
+
                 is DirFilter -> {
                     if (filter.state != 0) {
                         params["dir"] = filter.toUriPart()
                     }
                 }
+
                 is TypeFilter -> {
                     if (filter.state != 0) {
                         params["type"] = filter.toUriPart()
                     }
                 }
+
                 else -> Unit
             }
         }
@@ -352,9 +364,7 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     // Manga details
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET("$baseUrl/${manga.url.trimStart('/')}", headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET("$baseUrl/${manga.url.trimStart('/')}", headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val doc = Jsoup.parse(response.body.string())
@@ -446,13 +456,11 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
         }
     }
 
-    private fun parseDate(dateString: String): Long {
-        return try {
-            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
-                .parse(dateString)?.time ?: 0L
-        } catch (e: Exception) {
-            0L
-        }
+    private fun parseDate(dateString: String): Long = try {
+        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+            .parse(dateString)?.time ?: 0L
+    } catch (e: Exception) {
+        0L
     }
 
     // Page list - return single page with the chapter URL
@@ -461,9 +469,7 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
         return GET("$baseUrl/${chapter.url}", headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString(), null))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString(), null))
 
     override fun imageUrlParse(response: Response) = ""
 
@@ -491,112 +497,116 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
     private class AuthorFilter : Filter.Text("Author")
 
     private class Genre(name: String, val id: String) : Filter.TriState(name)
-    private class GenreFilter : Filter.Group<Genre>(
-        "Genres",
-        listOf(
-            Genre("Action", "action"),
-            Genre("Adventure", "adventure"),
-            Genre("Comedy", "comedy"),
-            Genre("Contemporary", "contemporary"),
-            Genre("Drama", "drama"),
-            Genre("Fantasy", "fantasy"),
-            Genre("Historical", "historical"),
-            Genre("Horror", "horror"),
-            Genre("Mystery", "mystery"),
-            Genre("Psychological", "psychological"),
-            Genre("Romance", "romance"),
-            Genre("Satire", "satire"),
-            Genre("Sci-fi", "sci_fi"),
-            Genre("Short Story", "one_shot"),
-            Genre("Tragedy", "tragedy"),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<Genre>(
+            "Genres",
+            listOf(
+                Genre("Action", "action"),
+                Genre("Adventure", "adventure"),
+                Genre("Comedy", "comedy"),
+                Genre("Contemporary", "contemporary"),
+                Genre("Drama", "drama"),
+                Genre("Fantasy", "fantasy"),
+                Genre("Historical", "historical"),
+                Genre("Horror", "horror"),
+                Genre("Mystery", "mystery"),
+                Genre("Psychological", "psychological"),
+                Genre("Romance", "romance"),
+                Genre("Satire", "satire"),
+                Genre("Sci-fi", "sci_fi"),
+                Genre("Short Story", "one_shot"),
+                Genre("Tragedy", "tragedy"),
+            ),
+        )
 
     private class Tag(name: String, val id: String) : Filter.TriState(name)
-    private class TagFilter : Filter.Group<Tag>(
-        "Tags",
-        listOf(
-            Tag("Anti-Hero Lead", "anti-hero_lead"),
-            Tag("Artificial Intelligence", "artificial_intelligence"),
-            Tag("Attractive Lead", "attractive_lead"),
-            Tag("Cyberpunk", "cyberpunk"),
-            Tag("Dungeon", "dungeon"),
-            Tag("Dystopia", "dystopia"),
-            Tag("Female Lead", "female_lead"),
-            Tag("First Contact", "first_contact"),
-            Tag("GameLit", "gamelit"),
-            Tag("Gender Bender", "gender_bender"),
-            Tag("Genetically Engineered", "genetically_engineered"),
-            Tag("Grimdark", "grimdark"),
-            Tag("Hard Sci-fi", "hard_sci-fi"),
-            Tag("Harem", "harem"),
-            Tag("High Fantasy", "high_fantasy"),
-            Tag("LitRPG", "litrpg"),
-            Tag("Low Fantasy", "low_fantasy"),
-            Tag("Magic", "magic"),
-            Tag("Male Lead", "male_lead"),
-            Tag("Martial Arts", "martial_arts"),
-            Tag("Multiple Lead Characters", "multiple_lead"),
-            Tag("Mythos", "mythos"),
-            Tag("Non-Human Lead", "non-human_lead"),
-            Tag("Portal Fantasy / Isekai", "summoned_hero"),
-            Tag("Post Apocalyptic", "post_apocalyptic"),
-            Tag("Progression", "progression"),
-            Tag("Reader Interactive", "reader_interactive"),
-            Tag("Reincarnation", "reincarnation"),
-            Tag("Ruling Class", "ruling_class"),
-            Tag("School Life", "school_life"),
-            Tag("Secret Identity", "secret_identity"),
-            Tag("Slice of Life", "slice_of_life"),
-            Tag("Soft Sci-fi", "soft-sci-fi"),
-            Tag("Space Opera", "space_opera"),
-            Tag("Sports", "sports"),
-            Tag("Steampunk", "steampunk"),
-            Tag("Strategy", "strategy"),
-            Tag("Strong Lead", "strong_lead"),
-            Tag("Super Heroes", "super_heroes"),
-            Tag("Supernatural", "supernatural"),
-            Tag("Technologically Engineered", "technologically_engineered"),
-            Tag("Time Loop", "loop"),
-            Tag("Time Travel", "time_travel"),
-            Tag("Urban Fantasy", "urban_fantasy"),
-            Tag("Villainous Lead", "villainous_lead"),
-            Tag("Virtual Reality", "virtual_reality"),
-            Tag("War and Military", "war_and_military"),
-            Tag("Wuxia", "wuxia"),
-            Tag("Xianxia", "xianxia"),
-        ),
-    )
+    private class TagFilter :
+        Filter.Group<Tag>(
+            "Tags",
+            listOf(
+                Tag("Anti-Hero Lead", "anti-hero_lead"),
+                Tag("Artificial Intelligence", "artificial_intelligence"),
+                Tag("Attractive Lead", "attractive_lead"),
+                Tag("Cyberpunk", "cyberpunk"),
+                Tag("Dungeon", "dungeon"),
+                Tag("Dystopia", "dystopia"),
+                Tag("Female Lead", "female_lead"),
+                Tag("First Contact", "first_contact"),
+                Tag("GameLit", "gamelit"),
+                Tag("Gender Bender", "gender_bender"),
+                Tag("Genetically Engineered", "genetically_engineered"),
+                Tag("Grimdark", "grimdark"),
+                Tag("Hard Sci-fi", "hard_sci-fi"),
+                Tag("Harem", "harem"),
+                Tag("High Fantasy", "high_fantasy"),
+                Tag("LitRPG", "litrpg"),
+                Tag("Low Fantasy", "low_fantasy"),
+                Tag("Magic", "magic"),
+                Tag("Male Lead", "male_lead"),
+                Tag("Martial Arts", "martial_arts"),
+                Tag("Multiple Lead Characters", "multiple_lead"),
+                Tag("Mythos", "mythos"),
+                Tag("Non-Human Lead", "non-human_lead"),
+                Tag("Portal Fantasy / Isekai", "summoned_hero"),
+                Tag("Post Apocalyptic", "post_apocalyptic"),
+                Tag("Progression", "progression"),
+                Tag("Reader Interactive", "reader_interactive"),
+                Tag("Reincarnation", "reincarnation"),
+                Tag("Ruling Class", "ruling_class"),
+                Tag("School Life", "school_life"),
+                Tag("Secret Identity", "secret_identity"),
+                Tag("Slice of Life", "slice_of_life"),
+                Tag("Soft Sci-fi", "soft-sci-fi"),
+                Tag("Space Opera", "space_opera"),
+                Tag("Sports", "sports"),
+                Tag("Steampunk", "steampunk"),
+                Tag("Strategy", "strategy"),
+                Tag("Strong Lead", "strong_lead"),
+                Tag("Super Heroes", "super_heroes"),
+                Tag("Supernatural", "supernatural"),
+                Tag("Technologically Engineered", "technologically_engineered"),
+                Tag("Time Loop", "loop"),
+                Tag("Time Travel", "time_travel"),
+                Tag("Urban Fantasy", "urban_fantasy"),
+                Tag("Villainous Lead", "villainous_lead"),
+                Tag("Virtual Reality", "virtual_reality"),
+                Tag("War and Military", "war_and_military"),
+                Tag("Wuxia", "wuxia"),
+                Tag("Xianxia", "xianxia"),
+            ),
+        )
 
     private class ContentWarning(name: String, val id: String) : Filter.TriState(name)
-    private class ContentWarningFilter : Filter.Group<ContentWarning>(
-        "Content Warnings",
-        listOf(
-            ContentWarning("Profanity", "profanity"),
-            ContentWarning("Sexual Content", "sexuality"),
-            ContentWarning("Graphic Violence", "graphic_violence"),
-            ContentWarning("Sensitive Content", "sensitive"),
-            ContentWarning("AI-Assisted Content", "ai_assisted"),
-            ContentWarning("AI-Generated Content", "ai_generated"),
-        ),
-    )
+    private class ContentWarningFilter :
+        Filter.Group<ContentWarning>(
+            "Content Warnings",
+            listOf(
+                ContentWarning("Profanity", "profanity"),
+                ContentWarning("Sexual Content", "sexuality"),
+                ContentWarning("Graphic Violence", "graphic_violence"),
+                ContentWarning("Sensitive Content", "sensitive"),
+                ContentWarning("AI-Assisted Content", "ai_assisted"),
+                ContentWarning("AI-Generated Content", "ai_generated"),
+            ),
+        )
 
     private class MinPagesFilter : Filter.Text("Min Pages")
     private class MaxPagesFilter : Filter.Text("Max Pages")
     private class MinRatingFilter : Filter.Text("Min Rating (0.0 - 5.0)")
     private class MaxRatingFilter : Filter.Text("Max Rating (0.0 - 5.0)")
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf(
-            "All",
-            "Completed",
-            "Dropped",
-            "Ongoing",
-            "Hiatus",
-            "Stub",
-        ),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf(
+                "All",
+                "Completed",
+                "Dropped",
+                "Ongoing",
+                "Hiatus",
+                "Stub",
+            ),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "COMPLETED"
             2 -> "DROPPED"
@@ -607,21 +617,22 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
         }
     }
 
-    private class OrderByFilter : Filter.Select<String>(
-        "Order by",
-        arrayOf(
-            "Relevance",
-            "Popularity",
-            "Average Rating",
-            "Last Update",
-            "Release Date",
-            "Followers",
-            "Number of Pages",
-            "Views",
-            "Title",
-            "Author",
-        ),
-    ) {
+    private class OrderByFilter :
+        Filter.Select<String>(
+            "Order by",
+            arrayOf(
+                "Relevance",
+                "Popularity",
+                "Average Rating",
+                "Last Update",
+                "Release Date",
+                "Followers",
+                "Number of Pages",
+                "Views",
+                "Title",
+                "Author",
+            ),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "relevance"
             1 -> "popularity"
@@ -637,20 +648,22 @@ class RoyalRoad : HttpSource(), NovelSource, ConfigurableSource {
         }
     }
 
-    private class DirFilter : Filter.Select<String>(
-        "Direction",
-        arrayOf("Descending", "Ascending"),
-    ) {
+    private class DirFilter :
+        Filter.Select<String>(
+            "Direction",
+            arrayOf("Descending", "Ascending"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "asc"
             else -> "desc"
         }
     }
 
-    private class TypeFilter : Filter.Select<String>(
-        "Type",
-        arrayOf("All", "Fan Fiction", "Original"),
-    ) {
+    private class TypeFilter :
+        Filter.Select<String>(
+            "Type",
+            arrayOf("All", "Fan Fiction", "Original"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "fanfiction"
             2 -> "original"

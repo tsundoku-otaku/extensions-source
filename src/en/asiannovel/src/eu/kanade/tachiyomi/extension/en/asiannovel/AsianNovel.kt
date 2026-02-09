@@ -18,7 +18,9 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import uy.kohesive.injekt.injectLazy
 
-class AsianNovel : HttpSource(), NovelSource {
+class AsianNovel :
+    HttpSource(),
+    NovelSource {
 
     override val name = "AsianNovel"
     override val baseUrl = "https://www.asianovel.net"
@@ -78,29 +80,35 @@ class AsianNovel : HttpSource(), NovelSource {
                 is SortFilter -> {
                     sortBy = sortOptions[filter.state].second
                 }
+
                 is OrderFilter -> {
                     sortOrder = orderOptions[filter.state].second
                 }
+
                 is AgeRatingFilter -> {
                     if (filter.state > 0) {
                         url.append("&age_rating=${ageRatingOptions[filter.state].second}")
                     }
                 }
+
                 is StatusFilter -> {
                     if (filter.state > 0) {
                         url.append("&story_status=${statusOptions[filter.state].second}")
                     }
                 }
+
                 is MinWordsFilter -> {
                     if (filter.state > 0) {
                         url.append("&miw=${minWordOptions[filter.state].second}")
                     }
                 }
+
                 is MaxWordsFilter -> {
                     if (filter.state > 0) {
                         url.append("&maw=${maxWordOptions[filter.state].second}")
                     }
                 }
+
                 is GenreFilter -> {
                     filter.state.forEachIndexed { index, triState ->
                         when (triState.state) {
@@ -109,6 +117,7 @@ class AsianNovel : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 is TagFilter -> {
                     filter.state.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { tagName ->
                         tagList.find { it.first.equals(tagName, ignoreCase = true) }?.let { tag ->
@@ -116,6 +125,7 @@ class AsianNovel : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 is ExcludeTagFilter -> {
                     filter.state.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { tagName ->
                         tagList.find { it.first.equals(tagName, ignoreCase = true) }?.let { tag ->
@@ -123,11 +133,13 @@ class AsianNovel : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 is AuthorFilter -> {
                     if (filter.state.isNotBlank()) {
                         url.append("&author_name=${java.net.URLEncoder.encode(filter.state, "UTF-8")}")
                     }
                 }
+
                 else -> {}
             }
         }
@@ -169,9 +181,7 @@ class AsianNovel : HttpSource(), NovelSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = Jsoup.parse(response.body.string())
@@ -222,9 +232,7 @@ class AsianNovel : HttpSource(), NovelSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = Jsoup.parse(response.body.string())
@@ -263,13 +271,9 @@ class AsianNovel : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListRequest(chapter: SChapter): Request {
-        return GET(baseUrl + chapter.url, headers)
-    }
+    override fun pageListRequest(chapter: SChapter): Request = GET(baseUrl + chapter.url, headers)
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -303,9 +307,11 @@ class AsianNovel : HttpSource(), NovelSource {
                             content.append("<p>$text</p>\n")
                         }
                     }
+
                     "h1", "h2", "h3" -> {
                         content.append("<h3>${element.text()}</h3>\n")
                     }
+
                     "img" -> {
                         val src = element.absUrl("src")
                         if (src.isNotEmpty()) {
@@ -323,27 +329,25 @@ class AsianNovel : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            SortFilter("Sort By", sortOptions.map { it.first }.toTypedArray()),
-            OrderFilter("Order", orderOptions.map { it.first }.toTypedArray()),
-            Filter.Separator(),
-            AgeRatingFilter("Age Rating", ageRatingOptions.map { it.first }.toTypedArray()),
-            StatusFilter("Status", statusOptions.map { it.first }.toTypedArray()),
-            Filter.Separator(),
-            MinWordsFilter("Min Words", minWordOptions.map { it.first }.toTypedArray()),
-            MaxWordsFilter("Max Words", maxWordOptions.map { it.first }.toTypedArray()),
-            Filter.Separator(),
-            Filter.Header("Genres (tap to include, tap again to exclude)"),
-            GenreFilter("Genres", genreList.map { it.first }),
-            Filter.Separator(),
-            Filter.Header("Tags (comma-separated names)"),
-            TagFilter("Include Tags"),
-            ExcludeTagFilter("Exclude Tags"),
-            Filter.Separator(),
-            AuthorFilter("Author Name"),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        SortFilter("Sort By", sortOptions.map { it.first }.toTypedArray()),
+        OrderFilter("Order", orderOptions.map { it.first }.toTypedArray()),
+        Filter.Separator(),
+        AgeRatingFilter("Age Rating", ageRatingOptions.map { it.first }.toTypedArray()),
+        StatusFilter("Status", statusOptions.map { it.first }.toTypedArray()),
+        Filter.Separator(),
+        MinWordsFilter("Min Words", minWordOptions.map { it.first }.toTypedArray()),
+        MaxWordsFilter("Max Words", maxWordOptions.map { it.first }.toTypedArray()),
+        Filter.Separator(),
+        Filter.Header("Genres (tap to include, tap again to exclude)"),
+        GenreFilter("Genres", genreList.map { it.first }),
+        Filter.Separator(),
+        Filter.Header("Tags (comma-separated names)"),
+        TagFilter("Include Tags"),
+        ExcludeTagFilter("Exclude Tags"),
+        Filter.Separator(),
+        AuthorFilter("Author Name"),
+    )
 
     class SortFilter(name: String, values: Array<String>) : Filter.Select<String>(name, values)
     class OrderFilter(name: String, values: Array<String>) : Filter.Select<String>(name, values)
@@ -355,10 +359,11 @@ class AsianNovel : HttpSource(), NovelSource {
     class ExcludeTagFilter(name: String) : Filter.Text(name)
     class AuthorFilter(name: String) : Filter.Text(name)
 
-    class GenreFilter(name: String, genres: List<String>) : Filter.Group<Filter.TriState>(
-        name,
-        genres.map { GenreTriState(it) },
-    )
+    class GenreFilter(name: String, genres: List<String>) :
+        Filter.Group<Filter.TriState>(
+            name,
+            genres.map { GenreTriState(it) },
+        )
     class GenreTriState(name: String) : Filter.TriState(name)
 
     private val sortOptions = listOf(
@@ -522,6 +527,7 @@ class AsianNovel : HttpSource(), NovelSource {
                         set(year, month - 1, day)
                     }.timeInMillis
                 }
+
                 else -> 0L
             }
         } catch (_: Exception) {

@@ -13,7 +13,9 @@ import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.Jsoup
 
-class NovelHall : HttpSource(), NovelSource {
+class NovelHall :
+    HttpSource(),
+    NovelSource {
 
     override val name = "NovelHall"
     override val baseUrl = "https://novelhall.com"
@@ -30,9 +32,7 @@ class NovelHall : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/all2022-$page.html", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/all2022-$page.html", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
@@ -76,9 +76,7 @@ class NovelHall : HttpSource(), NovelSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/lastupdate.html", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/lastupdate.html", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -102,12 +100,14 @@ class NovelHall : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 is SortFilter -> {
                     val selectedSort = filter.getSelectedSort()
                     if (selectedSort != null) {
                         return GET("$baseUrl/$selectedSort", headers)
                     }
                 }
+
                 else -> {}
             }
         }
@@ -219,9 +219,7 @@ class NovelHall : HttpSource(), NovelSource {
         return GET(url, headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -245,12 +243,15 @@ class NovelHall : HttpSource(), NovelSource {
                             content.append("<p>$text</p>\n")
                         }
                     }
+
                     "br" -> {
                         // Ignore line breaks, they're handled by paragraph structure
                     }
+
                     "h1", "h2", "h3", "h4" -> {
                         content.append("<h3>${element.text()}</h3>\n")
                     }
+
                     "img" -> {
                         val src = element.absUrl("src")
                         if (src.isNotEmpty()) {
@@ -291,15 +292,11 @@ class NovelHall : HttpSource(), NovelSource {
     )
 
     class SortFilter : Filter.Select<String>("Sort/List", sortOptions.map { it.first }.toTypedArray()) {
-        fun getSelectedSort(): String? {
-            return if (state > 0 && state < sortOptions.size) sortOptions[state].second else null
-        }
+        fun getSelectedSort(): String? = if (state > 0 && state < sortOptions.size) sortOptions[state].second else null
     }
 
     class GenreFilter : Filter.Select<String>("Genre", genres.map { it.first }.toTypedArray()) {
-        fun getSelectedGenre(): String? {
-            return if (state > 0 && state < genres.size) genres[state].second else null
-        }
+        fun getSelectedGenre(): String? = if (state > 0 && state < genres.size) genres[state].second else null
     }
 
     companion object {

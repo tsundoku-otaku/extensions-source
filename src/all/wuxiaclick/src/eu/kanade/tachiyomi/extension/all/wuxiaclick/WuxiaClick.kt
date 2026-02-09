@@ -19,7 +19,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
 import okhttp3.Response
 
-class WuxiaClick : HttpSource(), NovelSource {
+class WuxiaClick :
+    HttpSource(),
+    NovelSource {
 
     override val name = "WuxiaClick"
     override val baseUrl = "https://wuxia.click"
@@ -88,16 +90,19 @@ class WuxiaClick : HttpSource(), NovelSource {
         filters.forEach { filter ->
             when (filter) {
                 is SortFilter -> order = filter.pairValues[filter.state].second
+
                 is CategoryFilter -> {
                     if (filter.state > 0) {
                         category = filter.pairValues[filter.state].second
                     }
                 }
+
                 is TagFilter -> {
                     if (filter.state.isNotBlank()) {
                         tag = filter.state.trim().lowercase().replace(" ", "-")
                     }
                 }
+
                 else -> {}
             }
         }
@@ -199,9 +204,7 @@ class WuxiaClick : HttpSource(), NovelSource {
         return GET("$apiUrl/getchapter/$slug/", headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -233,23 +236,19 @@ class WuxiaClick : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            SortFilter("Sort By", sortOptions),
-            Filter.Separator(),
-            Filter.Header("Filter by Category (select one)"),
-            CategoryFilter("Category", categoryOptions),
-            Filter.Separator(),
-            Filter.Header("Or filter by Tag (enter slug)"),
-            TagFilter("Tag (e.g., male-protagonist)"),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        SortFilter("Sort By", sortOptions),
+        Filter.Separator(),
+        Filter.Header("Filter by Category (select one)"),
+        CategoryFilter("Category", categoryOptions),
+        Filter.Separator(),
+        Filter.Header("Or filter by Tag (enter slug)"),
+        TagFilter("Tag (e.g., male-protagonist)"),
+    )
 
-    class SortFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class SortFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
-    class CategoryFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class CategoryFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
     class TagFilter(name: String) : Filter.Text(name)
 
@@ -373,13 +372,11 @@ class WuxiaClick : HttpSource(), NovelSource {
         @SerialName("numOfChaps") val numOfChaps: Int? = null,
     ) {
         // Helper to get other names as list regardless of JSON type
-        fun getOtherNamesList(): List<String> {
-            return try {
-                otherNames?.jsonArray?.mapNotNull { it.jsonPrimitive.content } ?: emptyList()
-            } catch (e: Exception) {
-                // If it's not an array (e.g., empty object {}), return empty list
-                emptyList()
-            }
+        fun getOtherNamesList(): List<String> = try {
+            otherNames?.jsonArray?.mapNotNull { it.jsonPrimitive.content } ?: emptyList()
+        } catch (e: Exception) {
+            // If it's not an array (e.g., empty object {}), return empty list
+            emptyList()
         }
     }
 

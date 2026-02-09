@@ -14,7 +14,9 @@ import okhttp3.Response
 import org.jsoup.Jsoup
 import java.net.URLEncoder
 
-class Vynovel : HttpSource(), NovelSource {
+class Vynovel :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Vynovel"
     override val baseUrl = "https://vynovel.com"
@@ -26,9 +28,7 @@ class Vynovel : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/search?sort=viewed&sort_type=desc&page=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/search?sort=viewed&sort_type=desc&page=$page", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
@@ -53,9 +53,7 @@ class Vynovel : HttpSource(), NovelSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/search?sort=updated_at&sort_type=desc&page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/search?sort=updated_at&sort_type=desc&page=$page", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -79,12 +77,19 @@ class Vynovel : HttpSource(), NovelSource {
         filters.forEach { filter ->
             when (filter) {
                 is SearchPositionFilter -> searchPosition = filter.pairValues[filter.state].second
+
                 is SearchInDescFilter -> searchInDesc = filter.state
+
                 is AuthorFilter -> author = filter.state
+
                 is AuthorPositionFilter -> authorPosition = filter.pairValues[filter.state].second
+
                 is StatusFilter -> status = filter.pairValues[filter.state].second
+
                 is SortFilter -> sort = filter.pairValues[filter.state].second
+
                 is SortTypeFilter -> sortType = filter.pairValues[filter.state].second
+
                 is GenreFilter -> {
                     filter.state.forEach { genre ->
                         when (genre.state) {
@@ -94,6 +99,7 @@ class Vynovel : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 else -> {}
             }
         }
@@ -123,9 +129,7 @@ class Vynovel : HttpSource(), NovelSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = Jsoup.parse(response.body.string())
@@ -164,9 +168,7 @@ class Vynovel : HttpSource(), NovelSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = Jsoup.parse(response.body.string())
@@ -199,9 +201,7 @@ class Vynovel : HttpSource(), NovelSource {
         return GET(url, headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -234,41 +234,34 @@ class Vynovel : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            Filter.Header("Search Options"),
-            SearchPositionFilter("Search Position", searchPositionValues),
-            SearchInDescFilter("Search in Description"),
-            Filter.Separator(),
-            Filter.Header("Author Options"),
-            AuthorFilter("Author"),
-            AuthorPositionFilter("Author Position", searchPositionValues),
-            Filter.Separator(),
-            StatusFilter("Status", statusValues),
-            SortFilter("Sort By", sortValues),
-            SortTypeFilter("Sort Order", sortTypeValues),
-            Filter.Separator(),
-            Filter.Header("Genres (tap to include, tap again to exclude)"),
-            GenreFilter("Genres", getGenreList()),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Search Options"),
+        SearchPositionFilter("Search Position", searchPositionValues),
+        SearchInDescFilter("Search in Description"),
+        Filter.Separator(),
+        Filter.Header("Author Options"),
+        AuthorFilter("Author"),
+        AuthorPositionFilter("Author Position", searchPositionValues),
+        Filter.Separator(),
+        StatusFilter("Status", statusValues),
+        SortFilter("Sort By", sortValues),
+        SortTypeFilter("Sort Order", sortTypeValues),
+        Filter.Separator(),
+        Filter.Header("Genres (tap to include, tap again to exclude)"),
+        GenreFilter("Genres", getGenreList()),
+    )
 
-    class SearchPositionFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class SearchPositionFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
     class SearchInDescFilter(name: String) : Filter.CheckBox(name, false)
     class AuthorFilter(name: String) : Filter.Text(name)
-    class AuthorPositionFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class AuthorPositionFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
-    class StatusFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class StatusFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
-    class SortFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class SortFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
-    class SortTypeFilter(name: String, internal val pairValues: Array<Pair<String, String>>) :
-        Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
+    class SortTypeFilter(name: String, internal val pairValues: Array<Pair<String, String>>) : Filter.Select<String>(name, pairValues.map { it.first }.toTypedArray())
 
     class Genre(name: String, val value: String) : Filter.TriState(name)
     class GenreFilter(name: String, genres: List<Genre>) : Filter.Group<Genre>(name, genres)
@@ -375,26 +368,24 @@ class Vynovel : HttpSource(), NovelSource {
         return match?.groupValues?.getOrNull(1)
     }
 
-    private fun parseDate(dateString: String): Long {
-        return try {
-            val months = mapOf(
-                "Jan" to 0, "Feb" to 1, "Mar" to 2, "Apr" to 3,
-                "May" to 4, "Jun" to 5, "Jul" to 6, "Aug" to 7,
-                "Sep" to 8, "Oct" to 9, "Nov" to 10, "Dec" to 11,
-            )
-            val parts = dateString.trim().split(" ")
-            if (parts.size >= 3) {
-                val month = months[parts[0]] ?: 0
-                val day = parts[1].replace(",", "").toIntOrNull() ?: 1
-                val year = parts[2].toIntOrNull() ?: 2023
-                java.util.Calendar.getInstance().apply {
-                    set(year, month, day, 0, 0, 0)
-                }.timeInMillis
-            } else {
-                0L
-            }
-        } catch (e: Exception) {
+    private fun parseDate(dateString: String): Long = try {
+        val months = mapOf(
+            "Jan" to 0, "Feb" to 1, "Mar" to 2, "Apr" to 3,
+            "May" to 4, "Jun" to 5, "Jul" to 6, "Aug" to 7,
+            "Sep" to 8, "Oct" to 9, "Nov" to 10, "Dec" to 11,
+        )
+        val parts = dateString.trim().split(" ")
+        if (parts.size >= 3) {
+            val month = months[parts[0]] ?: 0
+            val day = parts[1].replace(",", "").toIntOrNull() ?: 1
+            val year = parts[2].toIntOrNull() ?: 2023
+            java.util.Calendar.getInstance().apply {
+                set(year, month, day, 0, 0, 0)
+            }.timeInMillis
+        } else {
             0L
         }
+    } catch (e: Exception) {
+        0L
     }
 }

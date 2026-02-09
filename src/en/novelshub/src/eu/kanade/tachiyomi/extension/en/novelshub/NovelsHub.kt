@@ -26,7 +26,9 @@ import java.net.URLEncoder
  * Uses RSC (React Server Components) for data fetching
  * @see instructions.html for RSC parsing details
  */
-class NovelsHub : HttpSource(), NovelSource {
+class NovelsHub :
+    HttpSource(),
+    NovelSource {
 
     override val name = "NovelsHub"
     override val baseUrl = "https://novelshub.org"
@@ -44,9 +46,7 @@ class NovelsHub : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/?page=$page", rscHeaders())
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/?page=$page", rscHeaders())
 
     override fun popularMangaParse(response: Response): MangasPage {
         val body = response.body.string()
@@ -201,6 +201,7 @@ class NovelsHub : HttpSource(), NovelSource {
                         params.add("orderDirection=${sort.second}")
                     }
                 }
+
                 is GenreFilter -> {
                     val genres = filter.state.filter { it.state != Filter.TriState.STATE_IGNORE }
                         .filterIsInstance<GenreCheckBox>()
@@ -210,18 +211,21 @@ class NovelsHub : HttpSource(), NovelSource {
                         params.add("genreIds=$genres")
                     }
                 }
+
                 is StatusFilter -> {
                     val status = filter.toValue()
                     if (!status.isNullOrEmpty()) {
                         params.add("seriesStatus=$status")
                     }
                 }
+
                 is TypeFilter -> {
                     val type = filter.toValue()
                     if (!type.isNullOrEmpty()) {
                         params.add("seriesType=$type")
                     }
                 }
+
                 else -> {}
             }
         }
@@ -326,9 +330,7 @@ class NovelsHub : HttpSource(), NovelSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, rscHeaders())
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, rscHeaders())
 
     override fun mangaDetailsParse(response: Response): SManga {
         val body = response.body.string()
@@ -389,9 +391,7 @@ class NovelsHub : HttpSource(), NovelSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, rscHeaders())
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, rscHeaders())
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val body = response.body.string()
@@ -541,8 +541,7 @@ class NovelsHub : HttpSource(), NovelSource {
         GenreFilter("Genres", genreList),
     )
 
-    class SortFilter(name: String, private val options: List<Triple<String, String, String>>) :
-        Filter.Select<String>(name, options.map { it.third }.toTypedArray()) {
+    class SortFilter(name: String, private val options: List<Triple<String, String, String>>) : Filter.Select<String>(name, options.map { it.third }.toTypedArray()) {
         fun toValue(): Pair<String, String>? = if (state == 0) {
             null
         } else {
@@ -550,18 +549,15 @@ class NovelsHub : HttpSource(), NovelSource {
         }
     }
 
-    class StatusFilter(name: String, private val options: List<Pair<String, String>>) :
-        Filter.Select<String>(name, arrayOf("All") + options.map { it.second }.toTypedArray()) {
+    class StatusFilter(name: String, private val options: List<Pair<String, String>>) : Filter.Select<String>(name, arrayOf("All") + options.map { it.second }.toTypedArray()) {
         fun toValue(): String? = if (state == 0) null else options.getOrNull(state - 1)?.first
     }
 
-    class TypeFilter(name: String, private val options: List<Pair<String, String>>) :
-        Filter.Select<String>(name, arrayOf("All") + options.map { it.second }.toTypedArray()) {
+    class TypeFilter(name: String, private val options: List<Pair<String, String>>) : Filter.Select<String>(name, arrayOf("All") + options.map { it.second }.toTypedArray()) {
         fun toValue(): String? = if (state == 0) null else options.getOrNull(state - 1)?.first
     }
 
-    class GenreFilter(name: String, genres: List<Pair<String, String>>) :
-        Filter.Group<Filter.TriState>(name, genres.map { GenreCheckBox(it.second, it.first) })
+    class GenreFilter(name: String, genres: List<Pair<String, String>>) : Filter.Group<Filter.TriState>(name, genres.map { GenreCheckBox(it.second, it.first) })
 
     class GenreCheckBox(name: String, val id: String) : Filter.TriState(name)
 

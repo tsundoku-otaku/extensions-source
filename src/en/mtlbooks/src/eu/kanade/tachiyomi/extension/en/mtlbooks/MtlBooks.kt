@@ -20,7 +20,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import uy.kohesive.injekt.injectLazy
 
-class MtlBooks : HttpSource(), NovelSource {
+class MtlBooks :
+    HttpSource(),
+    NovelSource {
 
     override val name = "MtlBooks"
     override val baseUrl = "https://mtlbooks.com"
@@ -96,12 +98,15 @@ class MtlBooks : HttpSource(), NovelSource {
         filters.forEach { filter ->
             when (filter) {
                 is OrderFilter -> orderBy = orderOptions[filter.state].second
+
                 is SortFilter -> sortOrder = sortOptions[filter.state].second
+
                 is WordCountFilter -> {
                     if (filter.state > 0) {
                         wordCount = wordCountOptions[filter.state].second
                     }
                 }
+
                 is GenreFilter -> {
                     filter.state.forEachIndexed { index, checkbox ->
                         if (checkbox.state) {
@@ -109,16 +114,19 @@ class MtlBooks : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 is TagIncludeFilter -> {
                     filter.state.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach {
                         includeTags.add(it)
                     }
                 }
+
                 is TagExcludeFilter -> {
                     filter.state.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach {
                         excludeTags.add(it)
                     }
                 }
+
                 is StatusFilter -> {
                     filter.state.forEachIndexed { index, checkbox ->
                         if (checkbox.state) {
@@ -126,6 +134,7 @@ class MtlBooks : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 else -> {}
             }
         }
@@ -314,23 +323,21 @@ class MtlBooks : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            OrderFilter("Order By", orderOptions.map { it.first }.toTypedArray()),
-            SortFilter("Sort", sortOptions.map { it.first }.toTypedArray()),
-            WordCountFilter("Word Count", wordCountOptions.map { it.first }.toTypedArray()),
-            Filter.Separator(),
-            Filter.Header("Genres (select multiple)"),
-            GenreFilter("Genres", genreList),
-            Filter.Separator(),
-            Filter.Header("Status (select multiple)"),
-            StatusFilter("Status", statusList),
-            Filter.Separator(),
-            Filter.Header("Tags (comma-separated)"),
-            TagIncludeFilter("Include Tags"),
-            TagExcludeFilter("Exclude Tags"),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        OrderFilter("Order By", orderOptions.map { it.first }.toTypedArray()),
+        SortFilter("Sort", sortOptions.map { it.first }.toTypedArray()),
+        WordCountFilter("Word Count", wordCountOptions.map { it.first }.toTypedArray()),
+        Filter.Separator(),
+        Filter.Header("Genres (select multiple)"),
+        GenreFilter("Genres", genreList),
+        Filter.Separator(),
+        Filter.Header("Status (select multiple)"),
+        StatusFilter("Status", statusList),
+        Filter.Separator(),
+        Filter.Header("Tags (comma-separated)"),
+        TagIncludeFilter("Include Tags"),
+        TagExcludeFilter("Exclude Tags"),
+    )
 
     class OrderFilter(name: String, values: Array<String>) : Filter.Select<String>(name, values)
     class SortFilter(name: String, values: Array<String>) : Filter.Select<String>(name, values)
@@ -338,16 +345,18 @@ class MtlBooks : HttpSource(), NovelSource {
     class TagIncludeFilter(name: String) : Filter.Text(name)
     class TagExcludeFilter(name: String) : Filter.Text(name)
 
-    class GenreFilter(name: String, genres: List<String>) : Filter.Group<Filter.CheckBox>(
-        name,
-        genres.map { GenreCheckBox(it) },
-    )
+    class GenreFilter(name: String, genres: List<String>) :
+        Filter.Group<Filter.CheckBox>(
+            name,
+            genres.map { GenreCheckBox(it) },
+        )
     class GenreCheckBox(name: String) : Filter.CheckBox(name)
 
-    class StatusFilter(name: String, statuses: List<String>) : Filter.Group<Filter.CheckBox>(
-        name,
-        statuses.map { StatusCheckBox(it) },
-    )
+    class StatusFilter(name: String, statuses: List<String>) :
+        Filter.Group<Filter.CheckBox>(
+            name,
+            statuses.map { StatusCheckBox(it) },
+        )
     class StatusCheckBox(name: String) : Filter.CheckBox(name)
 
     private val orderOptions = listOf(

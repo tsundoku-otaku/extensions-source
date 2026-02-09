@@ -25,7 +25,9 @@ import uy.kohesive.injekt.injectLazy
  * @see https://github.com/LNReader/lnreader-plugins mznovels.ts
  * Features: Ranking filters, author notes settings, AJAX browse
  */
-class MzNovels : HttpSource(), NovelSource {
+class MzNovels :
+    HttpSource(),
+    NovelSource {
 
     override val name = "MZ Novels"
     override val baseUrl = "https://mznovels.com"
@@ -62,6 +64,7 @@ class MzNovels : HttpSource(), NovelSource {
             "inline" -> {
                 // Leave author notes inline (default behavior)
             }
+
             "footnotes" -> {
                 // Move author notes to end as footnotes
                 val footnotes = mutableListOf<String>()
@@ -75,6 +78,7 @@ class MzNovels : HttpSource(), NovelSource {
                     footnotes.forEach { content.append(it) }
                 }
             }
+
             "none" -> {
                 // Remove author notes entirely
                 authorNotes.remove()
@@ -91,13 +95,9 @@ class MzNovels : HttpSource(), NovelSource {
         return searchMangaRequest(page, "", filters)
     }
 
-    override fun popularMangaParse(response: Response): MangasPage {
-        return searchMangaParse(response)
-    }
+    override fun popularMangaParse(response: Response): MangasPage = searchMangaParse(response)
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/latest-updates/?page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/latest-updates/?page=$page", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage {
         return parseNovelList(response, 1) // page is already in URL
@@ -304,38 +304,34 @@ class MzNovels : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            RankTypeFilter(),
-            RankPeriodFilter(),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        RankTypeFilter(),
+        RankPeriodFilter(),
+    )
 
-    private class RankTypeFilter : Filter.Select<String>(
-        "Ranking Type",
-        arrayOf("Original", "Translated", "Fanfiction"),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "original"
-                1 -> "translated"
-                2 -> "fanfiction"
-                else -> "original"
-            }
+    private class RankTypeFilter :
+        Filter.Select<String>(
+            "Ranking Type",
+            arrayOf("Original", "Translated", "Fanfiction"),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "original"
+            1 -> "translated"
+            2 -> "fanfiction"
+            else -> "original"
         }
     }
 
-    private class RankPeriodFilter : Filter.Select<String>(
-        "Ranking Period",
-        arrayOf("Daily", "Weekly", "Monthly"),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "daily"
-                1 -> "weekly"
-                2 -> "monthly"
-                else -> "daily"
-            }
+    private class RankPeriodFilter :
+        Filter.Select<String>(
+            "Ranking Period",
+            arrayOf("Daily", "Weekly", "Monthly"),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "daily"
+            1 -> "weekly"
+            2 -> "monthly"
+            else -> "daily"
         }
     }
 

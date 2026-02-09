@@ -20,7 +20,9 @@ import java.net.URLEncoder
  * ReadFromNet novel source - ported from LN Reader plugin
  * @see https://github.com/LNReader/lnreader-plugins readfrom.ts
  */
-class ReadFromNet : HttpSource(), NovelSource {
+class ReadFromNet :
+    HttpSource(),
+    NovelSource {
 
     override val name = "ReadFromNet"
 
@@ -32,9 +34,7 @@ class ReadFromNet : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/allbooks/page/$page/", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/allbooks/page/$page/", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val doc = response.asJsoup()
@@ -45,13 +45,9 @@ class ReadFromNet : HttpSource(), NovelSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/last_added_books/page/$page/", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/last_added_books/page/$page/", headers)
 
-    override fun latestUpdatesParse(response: Response): MangasPage {
-        return popularMangaParse(response)
-    }
+    override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
     // ======================== Search ========================
 
@@ -100,9 +96,7 @@ class ReadFromNet : HttpSource(), NovelSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET("$baseUrl/${manga.url}", headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET("$baseUrl/${manga.url}", headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val doc = response.asJsoup()
@@ -147,9 +141,7 @@ class ReadFromNet : HttpSource(), NovelSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET("$baseUrl/${manga.url}", headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET("$baseUrl/${manga.url}", headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val doc = response.asJsoup()
@@ -192,9 +184,7 @@ class ReadFromNet : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     override fun imageUrlParse(response: Response): String = ""
 
@@ -222,6 +212,7 @@ class ReadFromNet : HttpSource(), NovelSource {
                         paragraph.append(content).append(" ")
                     }
                 }
+
                 node is Element -> {
                     // Flush accumulated text as paragraph
                     if (paragraph.isNotEmpty()) {

@@ -2,8 +2,9 @@ package eu.kanade.tachiyomi.extension.en.daotranslate
 
 import eu.kanade.tachiyomi.multisrc.lightnovelwpnovel.LightNovelWPNovel
 
-class DaoTranslate : LightNovelWPNovel(
-    baseUrl = "https://daotranslate.com",
-    name = "Dao Translate",
-    lang = "en",
-)
+class DaoTranslate :
+    LightNovelWPNovel(
+        baseUrl = "https://daotranslate.com",
+        name = "Dao Translate",
+        lang = "en",
+    )

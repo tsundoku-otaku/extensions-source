@@ -45,7 +45,9 @@ abstract class ReadNovelFull(
     override val name: String,
     override val baseUrl: String,
     override val lang: String,
-) : ParsedHttpSource(), NovelSource, ConfigurableSource {
+) : ParsedHttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     // isNovelSource is provided by NovelSource interface with default value true
 
@@ -80,12 +82,10 @@ abstract class ReadNovelFull(
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return if (pageAsPath && page > 1) {
-            GET("$baseUrl/most-popular/$page", headers)
-        } else {
-            GET("$baseUrl/most-popular?$pageParam=$page", headers)
-        }
+    override fun popularMangaRequest(page: Int): Request = if (pageAsPath && page > 1) {
+        GET("$baseUrl/most-popular/$page", headers)
+    } else {
+        GET("$baseUrl/most-popular?$pageParam=$page", headers)
     }
 
     override fun popularMangaSelector() = "div.col-novel-main div.list-novel div.row, div.archive div.row, div.index-intro div.item, div.ul-list1 div.li, div.col-l div.li, div.col-r div.li"
@@ -115,12 +115,10 @@ abstract class ReadNovelFull(
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return if (pageAsPath && page > 1) {
-            GET("$baseUrl/$latestPage/$page", headers)
-        } else {
-            GET("$baseUrl/$latestPage?$pageParam=$page", headers)
-        }
+    override fun latestUpdatesRequest(page: Int): Request = if (pageAsPath && page > 1) {
+        GET("$baseUrl/$latestPage/$page", headers)
+    } else {
+        GET("$baseUrl/$latestPage?$pageParam=$page", headers)
     }
 
     override fun latestUpdatesSelector() = popularMangaSelector() + ", ul.ul-list2 li"
@@ -163,17 +161,20 @@ abstract class ReadNovelFull(
                         urlBuilder.addQueryParameter(typeParam, type)
                     }
                 }
+
                 is GenreFilter -> {
                     filter.state.filter { it.state }.forEach { genre ->
                         urlBuilder.addQueryParameter(genreParam, genre.id)
                     }
                 }
+
                 is StatusFilter -> {
                     val status = filter.toUriPart()
                     if (status != "all") {
                         urlBuilder.addQueryParameter("status", status)
                     }
                 }
+
                 else -> {}
             }
         }
@@ -220,10 +221,12 @@ abstract class ReadNovelFull(
                     author = element.select("a").joinToString { it.text().trim() }
                         .ifEmpty { text.substringAfter(":").trim() }
                 }
+
                 text.contains("Genre", ignoreCase = true) -> {
                     genre = element.select("a").joinToString { it.text().trim() }
                         .ifEmpty { text.substringAfter(":").trim() }
                 }
+
                 text.contains("Status", ignoreCase = true) -> {
                     status = parseStatus(text.substringAfter(":").trim())
                 }
@@ -367,26 +370,29 @@ abstract class ReadNovelFull(
         StatusFilter(),
     )
 
-    private class TypeFilter : Filter.Select<String>(
-        "Type",
-        arrayOf("All", "English", "Japanese", "Korean", "Chinese"),
-        0,
-    ) {
+    private class TypeFilter :
+        Filter.Select<String>(
+            "Type",
+            arrayOf("All", "English", "Japanese", "Korean", "Chinese"),
+            0,
+        ) {
         fun toUriPart() = values[state].lowercase()
     }
 
-    private class GenreFilter(genres: List<Genre>) : Filter.Group<GenreCheckBox>(
-        "Genres",
-        genres.map { GenreCheckBox(it.name, it.id) },
-    )
+    private class GenreFilter(genres: List<Genre>) :
+        Filter.Group<GenreCheckBox>(
+            "Genres",
+            genres.map { GenreCheckBox(it.name, it.id) },
+        )
 
     private class GenreCheckBox(name: String, val id: String) : Filter.CheckBox(name)
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Completed"),
-        0,
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Completed"),
+            0,
+        ) {
         fun toUriPart() = values[state].lowercase()
     }
 

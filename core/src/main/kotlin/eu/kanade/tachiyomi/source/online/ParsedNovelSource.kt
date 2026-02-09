@@ -10,7 +10,9 @@ import org.jsoup.nodes.Document
 /**
  * A simple implementation for novel sources from a website using Jsoup.
  */
-abstract class ParsedNovelSource : ParsedHttpSource(), NovelSource {
+abstract class ParsedNovelSource :
+    ParsedHttpSource(),
+    NovelSource {
 
     // isNovelSource is provided by NovelSource interface with default value true
 
@@ -41,14 +43,14 @@ abstract class ParsedNovelSource : ParsedHttpSource(), NovelSource {
      */
     open fun novelContentParse(document: Document): String {
         val element = document.select(novelContentSelector()).first() ?: return ""
-        
+
         // Fix relative URLs for images and other media
         element.select("img, video, audio, source").forEach { media ->
             if (media.hasAttr("src")) {
                 media.attr("src", media.absUrl("src"))
             }
         }
-        
+
         return element.html()
     }
 
@@ -66,7 +68,5 @@ abstract class ParsedNovelSource : ParsedHttpSource(), NovelSource {
     /**
      * Extension function to convert a Response to a Jsoup Document.
      */
-    private fun Response.asJsoup(): Document {
-        return Jsoup.parse(body.string(), request.url.toString())
-    }
+    private fun Response.asJsoup(): Document = Jsoup.parse(body.string(), request.url.toString())
 }

@@ -15,7 +15,9 @@ import okhttp3.Response
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class NovelBuddy : HttpSource(), NovelSource {
+class NovelBuddy :
+    HttpSource(),
+    NovelSource {
 
     override val name = "NovelBuddy"
     override val baseUrl = "https://novelbuddy.io"
@@ -33,9 +35,7 @@ class NovelBuddy : HttpSource(), NovelSource {
         return novelContentParse(document)
     }
 
-    private fun Response.asJsoup(): Document {
-        return Jsoup.parse(body.string(), request.url.toString())
-    }
+    private fun Response.asJsoup(): Document = Jsoup.parse(body.string(), request.url.toString())
 
     private fun novelContentParse(document: Document): String {
         // Remove unwanted elements
@@ -47,9 +47,7 @@ class NovelBuddy : HttpSource(), NovelSource {
     }
 
     // Popular novels
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/search?sort=views&page=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/search?sort=views&page=$page", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val document = response.asJsoup()
@@ -63,9 +61,7 @@ class NovelBuddy : HttpSource(), NovelSource {
     }
 
     // Latest updates
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/search?sort=updated_at&page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/search?sort=updated_at&page=$page", headers)
 
     override fun latestUpdatesParse(response: Response) = popularMangaParse(response)
 
@@ -80,17 +76,20 @@ class NovelBuddy : HttpSource(), NovelSource {
         filters.forEach { filter ->
             when (filter) {
                 is SortFilter -> url.addQueryParameter("sort", filter.toUriPart())
+
                 is StatusFilter -> {
                     val status = filter.toUriPart()
                     if (status != "all") {
                         url.addQueryParameter("status", status)
                     }
                 }
+
                 is GenreFilter -> {
                     filter.state.filter { it.state }.forEach { genre ->
                         url.addQueryParameter("genre[]", genre.uriPart)
                     }
                 }
+
                 else -> {}
             }
         }
@@ -109,10 +108,11 @@ class NovelBuddy : HttpSource(), NovelSource {
         GenreFilter(),
     )
 
-    private class SortFilter : Filter.Select<String>(
-        "Sort by",
-        arrayOf("Views", "Updated At", "Created At", "Name", "Rating"),
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort by",
+            arrayOf("Views", "Updated At", "Created At", "Name", "Rating"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "views"
             1 -> "updated_at"
@@ -123,10 +123,11 @@ class NovelBuddy : HttpSource(), NovelSource {
         }
     }
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Completed"),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Completed"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "all"
             1 -> "ongoing"
@@ -137,62 +138,63 @@ class NovelBuddy : HttpSource(), NovelSource {
 
     private class Genre(name: String, val uriPart: String) : Filter.CheckBox(name)
 
-    private class GenreFilter : Filter.Group<Genre>(
-        "Genres",
-        listOf(
-            Genre("Action", "action"),
-            Genre("Action Adventure", "action-adventure"),
-            Genre("Adult", "adult"),
-            Genre("Adventure", "adventure"),
-            Genre("Chinese", "chinese"),
-            Genre("Comedy", "comedy"),
-            Genre("Cultivation", "cultivation"),
-            Genre("Drama", "drama"),
-            Genre("Eastern", "eastern"),
-            Genre("Ecchi", "ecchi"),
-            Genre("Fan Fiction", "fan-fiction"),
-            Genre("Fanfiction", "fanfiction"),
-            Genre("Fantasy", "fantasy"),
-            Genre("Game", "game"),
-            Genre("Gender Bender", "gender-bender"),
-            Genre("Harem", "harem"),
-            Genre("Historical", "historical"),
-            Genre("Horror", "horror"),
-            Genre("Isekai", "isekai"),
-            Genre("Josei", "josei"),
-            Genre("Lolicon", "lolicon"),
-            Genre("Magic", "magic"),
-            Genre("Martial Arts", "martial-arts"),
-            Genre("Mature", "mature"),
-            Genre("Mecha", "mecha"),
-            Genre("Military", "military"),
-            Genre("Modern Life", "modern-life"),
-            Genre("Mystery", "mystery"),
-            Genre("Psychological", "psychological"),
-            Genre("Reincarnation", "reincarnation"),
-            Genre("Romance", "romance"),
-            Genre("School Life", "school-life"),
-            Genre("Sci-fi", "sci-fi"),
-            Genre("Seinen", "seinen"),
-            Genre("Shoujo", "shoujo"),
-            Genre("Shoujo Ai", "shoujo-ai"),
-            Genre("Shounen", "shounen"),
-            Genre("Shounen Ai", "shounen-ai"),
-            Genre("Slice of Life", "slice-of-life"),
-            Genre("Smut", "smut"),
-            Genre("Sports", "sports"),
-            Genre("Supernatural", "supernatural"),
-            Genre("System", "system"),
-            Genre("Tragedy", "tragedy"),
-            Genre("Urban", "urban"),
-            Genre("Urban Life", "urban-life"),
-            Genre("Wuxia", "wuxia"),
-            Genre("Xianxia", "xianxia"),
-            Genre("Xuanhuan", "xuanhuan"),
-            Genre("Yaoi", "yaoi"),
-            Genre("Yuri", "yuri"),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<Genre>(
+            "Genres",
+            listOf(
+                Genre("Action", "action"),
+                Genre("Action Adventure", "action-adventure"),
+                Genre("Adult", "adult"),
+                Genre("Adventure", "adventure"),
+                Genre("Chinese", "chinese"),
+                Genre("Comedy", "comedy"),
+                Genre("Cultivation", "cultivation"),
+                Genre("Drama", "drama"),
+                Genre("Eastern", "eastern"),
+                Genre("Ecchi", "ecchi"),
+                Genre("Fan Fiction", "fan-fiction"),
+                Genre("Fanfiction", "fanfiction"),
+                Genre("Fantasy", "fantasy"),
+                Genre("Game", "game"),
+                Genre("Gender Bender", "gender-bender"),
+                Genre("Harem", "harem"),
+                Genre("Historical", "historical"),
+                Genre("Horror", "horror"),
+                Genre("Isekai", "isekai"),
+                Genre("Josei", "josei"),
+                Genre("Lolicon", "lolicon"),
+                Genre("Magic", "magic"),
+                Genre("Martial Arts", "martial-arts"),
+                Genre("Mature", "mature"),
+                Genre("Mecha", "mecha"),
+                Genre("Military", "military"),
+                Genre("Modern Life", "modern-life"),
+                Genre("Mystery", "mystery"),
+                Genre("Psychological", "psychological"),
+                Genre("Reincarnation", "reincarnation"),
+                Genre("Romance", "romance"),
+                Genre("School Life", "school-life"),
+                Genre("Sci-fi", "sci-fi"),
+                Genre("Seinen", "seinen"),
+                Genre("Shoujo", "shoujo"),
+                Genre("Shoujo Ai", "shoujo-ai"),
+                Genre("Shounen", "shounen"),
+                Genre("Shounen Ai", "shounen-ai"),
+                Genre("Slice of Life", "slice-of-life"),
+                Genre("Smut", "smut"),
+                Genre("Sports", "sports"),
+                Genre("Supernatural", "supernatural"),
+                Genre("System", "system"),
+                Genre("Tragedy", "tragedy"),
+                Genre("Urban", "urban"),
+                Genre("Urban Life", "urban-life"),
+                Genre("Wuxia", "wuxia"),
+                Genre("Xianxia", "xianxia"),
+                Genre("Xuanhuan", "xuanhuan"),
+                Genre("Yaoi", "yaoi"),
+                Genre("Yuri", "yuri"),
+            ),
+        )
 
     // Parse novels from search/browse pages
     private fun parseNovels(document: Document): List<SManga> {
@@ -234,6 +236,7 @@ class NovelBuddy : HttpSource(), NovelSource {
                 "Authors :" -> {
                     manga.author = element.select("a span").joinToString(", ") { it.text() }
                 }
+
                 "Status :" -> {
                     manga.status = when (element.select("a").text().lowercase()) {
                         "ongoing" -> SManga.ONGOING
@@ -241,6 +244,7 @@ class NovelBuddy : HttpSource(), NovelSource {
                         else -> SManga.UNKNOWN
                     }
                 }
+
                 "Genres :" -> {
                     manga.genre = element.select("a").joinToString(", ") { it.text().trim() }
                 }
@@ -251,9 +255,7 @@ class NovelBuddy : HttpSource(), NovelSource {
     }
 
     // Chapter list
-    override fun chapterListRequest(manga: SManga): Request {
-        return mangaDetailsRequest(manga)
-    }
+    override fun chapterListRequest(manga: SManga): Request = mangaDetailsRequest(manga)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = response.asJsoup()
@@ -323,17 +325,13 @@ class NovelBuddy : HttpSource(), NovelSource {
         return GET(url, headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString(), null))
-    }
-    private fun normalizeRelativeUrl(url: String): String {
-        return url
-            .removePrefix("https://")
-            .removePrefix("http://")
-            .removePrefix(baseUrl)
-            .removePrefix("//")
-            .removePrefix("/")
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString(), null))
+    private fun normalizeRelativeUrl(url: String): String = url
+        .removePrefix("https://")
+        .removePrefix("http://")
+        .removePrefix(baseUrl)
+        .removePrefix("//")
+        .removePrefix("/")
 
     override fun imageUrlParse(response: Response) = ""
 }

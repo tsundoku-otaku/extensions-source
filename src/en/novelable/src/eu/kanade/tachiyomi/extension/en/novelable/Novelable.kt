@@ -14,7 +14,9 @@ import okhttp3.Response
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class Novelable : HttpSource(), NovelSource {
+class Novelable :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Novelable"
     override val baseUrl = "https://novelable.com"
@@ -26,9 +28,7 @@ class Novelable : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/top/popular?page=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/top/popular?page=$page", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
@@ -40,9 +40,7 @@ class Novelable : HttpSource(), NovelSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/latest?page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/latest?page=$page", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -65,6 +63,7 @@ class Novelable : HttpSource(), NovelSource {
                         url.append("$baseUrl/genre/$category")
                     }
                 }
+
                 else -> {}
             }
         }
@@ -82,9 +81,7 @@ class Novelable : HttpSource(), NovelSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = Jsoup.parse(response.body.string())
@@ -139,9 +136,7 @@ class Novelable : HttpSource(), NovelSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = Jsoup.parse(response.body.string())
@@ -231,13 +226,9 @@ class Novelable : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListRequest(chapter: SChapter): Request {
-        return GET(baseUrl + chapter.url, headers)
-    }
+    override fun pageListRequest(chapter: SChapter): Request = GET(baseUrl + chapter.url, headers)
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -278,15 +269,18 @@ class Novelable : HttpSource(), NovelSource {
                                 content.append("<p>$text</p>\n")
                             }
                         }
+
                         "h1", "h2", "h3", "h4" -> {
                             content.append("<h3>${element.text()}</h3>\n")
                         }
+
                         "img" -> {
                             val src = element.absUrl("src")
                             if (src.isNotEmpty()) {
                                 content.append("<img src=\"$src\">\n")
                             }
                         }
+
                         "div" -> {
                             // Skip ad divs and script containers
                             if (!element.hasClass("adsbygoogle") && !element.attr("id").contains("ad", ignoreCase = true) &&
@@ -313,12 +307,10 @@ class Novelable : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            Filter.Header("Category (cannot combine with search)"),
-            CategoryFilter("Category", categoryNames),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Category (cannot combine with search)"),
+        CategoryFilter("Category", categoryNames),
+    )
 
     class CategoryFilter(name: String, values: Array<String>) : Filter.Select<String>(name, values)
 
@@ -452,30 +444,37 @@ class Novelable : HttpSource(), NovelSource {
 
         return when {
             lowerDate.contains("just now") || lowerDate.contains("second") -> now
+
             lowerDate.contains("minute") -> {
                 val minutes = Regex("(\\d+)").find(lowerDate)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 1
                 now - minutes * 60 * 1000
             }
+
             lowerDate.contains("hour") -> {
                 val hours = Regex("(\\d+)").find(lowerDate)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 1
                 now - hours * 60 * 60 * 1000
             }
+
             lowerDate.contains("day") -> {
                 val days = Regex("(\\d+)").find(lowerDate)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 1
                 now - days * 24 * 60 * 60 * 1000
             }
+
             lowerDate.contains("week") -> {
                 val weeks = Regex("(\\d+)").find(lowerDate)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 1
                 now - weeks * 7 * 24 * 60 * 60 * 1000
             }
+
             lowerDate.contains("month") -> {
                 val months = Regex("(\\d+)").find(lowerDate)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 1
                 now - months * 30 * 24 * 60 * 60 * 1000
             }
+
             lowerDate.contains("year") -> {
                 val years = Regex("(\\d+)").find(lowerDate)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 1
                 now - years * 365 * 24 * 60 * 60 * 1000
             }
+
             else -> 0L
         }
     }

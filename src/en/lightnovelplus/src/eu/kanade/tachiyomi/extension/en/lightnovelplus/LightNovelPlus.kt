@@ -6,11 +6,12 @@ import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import okhttp3.Request
 
-class LightNovelPlus : ReadNovelFull(
-    name = "LightNovelPlus",
-    baseUrl = "https://lightnovelplus.com",
-    lang = "en",
-) {
+class LightNovelPlus :
+    ReadNovelFull(
+        name = "LightNovelPlus",
+        baseUrl = "https://lightnovelplus.com",
+        lang = "en",
+    ) {
     // LightNovelPlus has a very different URL structure from the standard ReadNovelFull
     override val latestPage = "last_release"
     override val searchPage = "book/search.html"
@@ -20,13 +21,9 @@ class LightNovelPlus : ReadNovelFull(
     override val pageParam = "page_num"
     override val searchKey = "keyword"
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/book/bookclass.html?$pageParam=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/book/bookclass.html?$pageParam=$page", headers)
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/$latestPage?$pageParam=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/$latestPage?$pageParam=$page", headers)
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
         if (query.isNotBlank()) {
@@ -63,11 +60,12 @@ class LightNovelPlus : ReadNovelFull(
         GenreFilter(),
     )
 
-    private class TypeFilter : Filter.Select<String>(
-        "Type",
-        arrayOf("All", "Hot Novel", "Completed Novel"),
-        0,
-    ) {
+    private class TypeFilter :
+        Filter.Select<String>(
+            "Type",
+            arrayOf("All", "Hot Novel", "Completed Novel"),
+            0,
+        ) {
         fun toUriPart() = when (state) {
             1 -> "hot_novel"
             2 -> "completed_novel"
@@ -75,11 +73,12 @@ class LightNovelPlus : ReadNovelFull(
         }
     }
 
-    private class GenreFilter : Filter.Select<String>(
-        "Genre",
-        genres.map { it.first }.toTypedArray(),
-        0,
-    ) {
+    private class GenreFilter :
+        Filter.Select<String>(
+            "Genre",
+            genres.map { it.first }.toTypedArray(),
+            0,
+        ) {
         fun toUriPart() = genres[state].second
     }
 

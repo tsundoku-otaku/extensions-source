@@ -6,11 +6,12 @@ import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import okhttp3.Request
 
-class BoxNovel : ReadNovelFull(
-    name = "BoxNovel",
-    baseUrl = "https://novlove.com",
-    lang = "en",
-) {
+class BoxNovel :
+    ReadNovelFull(
+        name = "BoxNovel",
+        baseUrl = "https://novlove.com",
+        lang = "en",
+    ) {
     override val latestPage = "sort/nov-love-daily-update"
 
     // BoxNovel uses path-based filtering instead of query parameters
@@ -28,11 +29,13 @@ class BoxNovel : ReadNovelFull(
                         path = typeOptions[filter.state].second
                     }
                 }
+
                 is GenreFilter -> {
                     if (filter.state > 0) {
                         path = genreOptions[filter.state].second
                     }
                 }
+
                 else -> {}
             }
         }
@@ -59,15 +62,17 @@ class BoxNovel : ReadNovelFull(
         GenreFilter(),
     )
 
-    private class TypeFilter : Filter.Select<String>(
-        "Type",
-        typeOptions.map { it.first }.toTypedArray(),
-    )
+    private class TypeFilter :
+        Filter.Select<String>(
+            "Type",
+            typeOptions.map { it.first }.toTypedArray(),
+        )
 
-    private class GenreFilter : Filter.Select<String>(
-        "Genre",
-        genreOptions.map { it.first }.toTypedArray(),
-    )
+    private class GenreFilter :
+        Filter.Select<String>(
+            "Genre",
+            genreOptions.map { it.first }.toTypedArray(),
+        )
 
     companion object {
         private val typeOptions = listOf(

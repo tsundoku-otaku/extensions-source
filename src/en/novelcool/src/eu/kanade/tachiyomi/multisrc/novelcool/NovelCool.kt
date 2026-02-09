@@ -22,7 +22,7 @@ abstract class NovelCool(
     override val name: String,
     override val baseUrl: String,
     override val lang: String,
-    private val langCode: String
+    private val langCode: String,
 ) : HttpSource() {
 
     override val supportsLatest = true
@@ -30,7 +30,7 @@ abstract class NovelCool(
     private val json: Json by injectLazy()
 
     private val apiUrl = "https://api.novelcool.com"
-    
+
     private val userAgent = "Android/Package:com.zuoyou.novel - Version Name:2.3 - Phone Info:sdk_gphone_x86_64(Android Version:13)"
     private val appId = "202201290625004"
     private val secret = "c73a8590641781f203660afca1d37ada"
@@ -43,13 +43,11 @@ abstract class NovelCool(
         .add("Content-Type", "application/x-www-form-urlencoded")
         .build()
 
-    private fun baseBodyBuilder(): FormBody.Builder {
-        return FormBody.Builder()
-            .add("appId", appId)
-            .add("secret", secret)
-            .add("package_name", packageName)
-            .add("lang", langCode)
-    }
+    private fun baseBodyBuilder(): FormBody.Builder = FormBody.Builder()
+        .add("appId", appId)
+        .add("secret", secret)
+        .add("package_name", packageName)
+        .add("lang", langCode)
 
     override fun popularMangaRequest(page: Int): Request {
         val body = baseBodyBuilder()
@@ -57,7 +55,7 @@ abstract class NovelCool(
             .add("page", page.toString())
             .add("page_size", "20")
             .build()
-        
+
         return POST("$apiUrl/elite/hot", apiHeaders(), body)
     }
 
@@ -83,7 +81,7 @@ abstract class NovelCool(
             .add("page", page.toString())
             .add("page_size", "20")
             .build()
-        
+
         return POST("$apiUrl/elite/latest", apiHeaders(), body)
     }
 
@@ -95,7 +93,7 @@ abstract class NovelCool(
             .add("page", page.toString())
             .add("page_size", "20")
             .build()
-        
+
         return POST("$apiUrl/book/search/", apiHeaders(), body)
     }
 
@@ -106,7 +104,7 @@ abstract class NovelCool(
         val body = baseBodyBuilder()
             .add("book_id", id)
             .build()
-        
+
         return POST("$apiUrl/book/info/", apiHeaders(), body)
     }
 
@@ -130,7 +128,7 @@ abstract class NovelCool(
         val body = baseBodyBuilder()
             .add("book_id", id)
             .build()
-        
+
         return POST("$apiUrl/chapter/book_list/", apiHeaders(), body)
     }
 
@@ -144,7 +142,7 @@ abstract class NovelCool(
             if (isLocked == "1" || isLocked == "true") {
                 return@mapNotNull null
             }
-            
+
             SChapter.create().apply {
                 name = obj["title"]!!.jsonPrimitive.content
                 url = obj["book_id"]!!.jsonPrimitive.content + "/" + obj["id"]!!.jsonPrimitive.content
@@ -159,13 +157,11 @@ abstract class NovelCool(
         val body = baseBodyBuilder()
             .add("chapter_id", chapterId)
             .build()
-        
+
         return POST("$apiUrl/chapter/info/", apiHeaders(), body)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return emptyList()
-    }
+    override fun pageListParse(response: Response): List<Page> = emptyList()
 
     override fun imageUrlParse(response: Response) = ""
 }

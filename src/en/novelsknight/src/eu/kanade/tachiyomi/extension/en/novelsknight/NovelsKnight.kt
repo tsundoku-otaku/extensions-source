@@ -24,7 +24,10 @@ import uy.kohesive.injekt.api.get
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class NovelsKnight : HttpSource(), NovelSource, ConfigurableSource {
+class NovelsKnight :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "Novels Knight"
     override val baseUrl = "https://novelsknight.punchmanga.online"
@@ -38,9 +41,7 @@ class NovelsKnight : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     // Popular novels - from instructions.txt: ?order=popular
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/series/?page=$page&order=popular", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/series/?page=$page&order=popular", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val doc = Jsoup.parse(response.body.string())
@@ -48,9 +49,7 @@ class NovelsKnight : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     // Latest updates
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/series/?page=$page&order=update", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/series/?page=$page&order=update", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -70,17 +69,21 @@ class NovelsKnight : HttpSource(), NovelSource, ConfigurableSource {
                             addQueryParameter("status", status)
                         }
                     }
+
                     is OrderFilter -> addQueryParameter("order", filter.toUriPart())
+
                     is GenreFilter -> {
                         filter.state.filter { it.state }.forEach { genre ->
                             addQueryParameter("genre[]", genre.uriPart)
                         }
                     }
+
                     is TypeFilter -> {
                         filter.state.filter { it.state }.forEach { type ->
                             addQueryParameter("type[]", type.uriPart)
                         }
                     }
+
                     else -> {}
                 }
             }
@@ -275,10 +278,11 @@ class NovelsKnight : HttpSource(), NovelSource, ConfigurableSource {
         TypeFilter(),
     )
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Hiatus", "Completed"),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Hiatus", "Completed"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "ongoing"
             2 -> "hiatus"
@@ -287,10 +291,11 @@ class NovelsKnight : HttpSource(), NovelSource, ConfigurableSource {
         }
     }
 
-    private class OrderFilter : Filter.Select<String>(
-        "Order by",
-        arrayOf("Default", "A-Z", "Z-A", "Latest Update", "Latest Added", "Popular", "Rating"),
-    ) {
+    private class OrderFilter :
+        Filter.Select<String>(
+            "Order by",
+            arrayOf("Default", "A-Z", "Z-A", "Latest Update", "Latest Added", "Popular", "Rating"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "title"
             2 -> "titlereverse"
@@ -304,66 +309,68 @@ class NovelsKnight : HttpSource(), NovelSource, ConfigurableSource {
 
     private class GenreCheckBox(name: String, val uriPart: String) : Filter.CheckBox(name)
 
-    private class GenreFilter : Filter.Group<GenreCheckBox>(
-        "Genres",
-        listOf(
-            GenreCheckBox("City", "city"),
-            GenreCheckBox("Cultivation", "cultivation"),
-            GenreCheckBox("Faloo", "faloo"),
-            GenreCheckBox("Fan fiction", "fan-fiction"),
-            GenreCheckBox("Fanfiction", "fanfiction"),
-            GenreCheckBox("Fanqie", "fanqie"),
-            GenreCheckBox("Fantasy", "fantasy"),
-            GenreCheckBox("Horror", "horror"),
-            GenreCheckBox("Immortal", "immortal"),
-            GenreCheckBox("Infinite Heavens", "infinite-heavens"),
-            GenreCheckBox("Infinity", "infinity"),
-            GenreCheckBox("Light novel", "light-novel"),
-            GenreCheckBox("Martial arts", "martial-arts"),
-            GenreCheckBox("Military history", "military-history"),
-            GenreCheckBox("Novel", "novel"),
-            GenreCheckBox("Qidian", "qidian"),
-            GenreCheckBox("Rebirth", "rebirth"),
-            GenreCheckBox("Romance", "romance"),
-            GenreCheckBox("Sci-fi online game", "sc-fi-online-game"),
-            GenreCheckBox("Science fiction online games", "sci-fi-online-games"),
-            GenreCheckBox("Sport", "sport"),
-            GenreCheckBox("Sports", "sports"),
-            GenreCheckBox("System", "system"),
-            GenreCheckBox("Time travel", "time-travel"),
-            GenreCheckBox("Travel", "travel"),
-            GenreCheckBox("Unlimited Heavens", "unlimited-heavens"),
-            GenreCheckBox("Urban", "urban"),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<GenreCheckBox>(
+            "Genres",
+            listOf(
+                GenreCheckBox("City", "city"),
+                GenreCheckBox("Cultivation", "cultivation"),
+                GenreCheckBox("Faloo", "faloo"),
+                GenreCheckBox("Fan fiction", "fan-fiction"),
+                GenreCheckBox("Fanfiction", "fanfiction"),
+                GenreCheckBox("Fanqie", "fanqie"),
+                GenreCheckBox("Fantasy", "fantasy"),
+                GenreCheckBox("Horror", "horror"),
+                GenreCheckBox("Immortal", "immortal"),
+                GenreCheckBox("Infinite Heavens", "infinite-heavens"),
+                GenreCheckBox("Infinity", "infinity"),
+                GenreCheckBox("Light novel", "light-novel"),
+                GenreCheckBox("Martial arts", "martial-arts"),
+                GenreCheckBox("Military history", "military-history"),
+                GenreCheckBox("Novel", "novel"),
+                GenreCheckBox("Qidian", "qidian"),
+                GenreCheckBox("Rebirth", "rebirth"),
+                GenreCheckBox("Romance", "romance"),
+                GenreCheckBox("Sci-fi online game", "sc-fi-online-game"),
+                GenreCheckBox("Science fiction online games", "sci-fi-online-games"),
+                GenreCheckBox("Sport", "sport"),
+                GenreCheckBox("Sports", "sports"),
+                GenreCheckBox("System", "system"),
+                GenreCheckBox("Time travel", "time-travel"),
+                GenreCheckBox("Travel", "travel"),
+                GenreCheckBox("Unlimited Heavens", "unlimited-heavens"),
+                GenreCheckBox("Urban", "urban"),
+            ),
+        )
 
     private class TypeCheckBox(name: String, val uriPart: String) : Filter.CheckBox(name)
 
-    private class TypeFilter : Filter.Group<TypeCheckBox>(
-        "Types",
-        listOf(
-            TypeCheckBox("Chinese", "chinesse"),
-            TypeCheckBox("Ciweimao", "ciweimao"),
-            TypeCheckBox("Entertainment", "entertainment"),
-            TypeCheckBox("Faloo", "faloo"),
-            TypeCheckBox("Fan fiction", "fan-fiction"),
-            TypeCheckBox("Fanqie", "fanqie"),
-            TypeCheckBox("Fantasy", "fantasy"),
-            TypeCheckBox("Harry Potter", "harry-potter"),
-            TypeCheckBox("Horror", "horror"),
-            TypeCheckBox("Martial arts", "martial-arts"),
-            TypeCheckBox("Marvel", "marvel"),
-            TypeCheckBox("Naruto", "naruto"),
-            TypeCheckBox("NBA", "nba"),
-            TypeCheckBox("Novel", "novel"),
-            TypeCheckBox("One Piece", "one-piece"),
-            TypeCheckBox("Online game", "online-game"),
-            TypeCheckBox("Qidian", "qidian"),
-            TypeCheckBox("Qimao", "qimao"),
-            TypeCheckBox("Romance", "romance"),
-            TypeCheckBox("Sci-Fi", "sci-fi"),
-            TypeCheckBox("Urban", "urban"),
-            TypeCheckBox("Web Novel", "web-novel"),
-        ),
-    )
+    private class TypeFilter :
+        Filter.Group<TypeCheckBox>(
+            "Types",
+            listOf(
+                TypeCheckBox("Chinese", "chinesse"),
+                TypeCheckBox("Ciweimao", "ciweimao"),
+                TypeCheckBox("Entertainment", "entertainment"),
+                TypeCheckBox("Faloo", "faloo"),
+                TypeCheckBox("Fan fiction", "fan-fiction"),
+                TypeCheckBox("Fanqie", "fanqie"),
+                TypeCheckBox("Fantasy", "fantasy"),
+                TypeCheckBox("Harry Potter", "harry-potter"),
+                TypeCheckBox("Horror", "horror"),
+                TypeCheckBox("Martial arts", "martial-arts"),
+                TypeCheckBox("Marvel", "marvel"),
+                TypeCheckBox("Naruto", "naruto"),
+                TypeCheckBox("NBA", "nba"),
+                TypeCheckBox("Novel", "novel"),
+                TypeCheckBox("One Piece", "one-piece"),
+                TypeCheckBox("Online game", "online-game"),
+                TypeCheckBox("Qidian", "qidian"),
+                TypeCheckBox("Qimao", "qimao"),
+                TypeCheckBox("Romance", "romance"),
+                TypeCheckBox("Sci-Fi", "sci-fi"),
+                TypeCheckBox("Urban", "urban"),
+                TypeCheckBox("Web Novel", "web-novel"),
+            ),
+        )
 }

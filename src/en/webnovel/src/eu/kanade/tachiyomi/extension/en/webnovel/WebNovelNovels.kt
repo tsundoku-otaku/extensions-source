@@ -15,7 +15,9 @@ import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.Jsoup
 
-class WebNovelNovels : HttpSource(), NovelSource {
+class WebNovelNovels :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Webnovel Novels"
 
@@ -36,9 +38,7 @@ class WebNovelNovels : HttpSource(), NovelSource {
         .set("Referer", baseUrl)
 
     // Popular
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/stories/novel?orderBy=1&pageIndex=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/stories/novel?orderBy=1&pageIndex=$page", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
@@ -119,9 +119,7 @@ class WebNovelNovels : HttpSource(), NovelSource {
     }
 
     // Latest
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/stories/novel?orderBy=5&pageIndex=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/stories/novel?orderBy=5&pageIndex=$page", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -141,19 +139,25 @@ class WebNovelNovels : HttpSource(), NovelSource {
         filters.forEach { filter ->
             when (filter) {
                 is GenderFilter -> gender = filter.toUriPart()
+
                 is SortFilter -> sort = filter.toUriPart()
+
                 is StatusFilter -> status = filter.toUriPart()
+
                 is TypeFilter -> type = filter.toUriPart()
+
                 is MaleGenreFilter -> {
                     if (gender == "1" && filter.state != 0) {
                         genre = filter.toUriPart()
                     }
                 }
+
                 is FemaleGenreFilter -> {
                     if (gender == "2" && filter.state != 0) {
                         genre = filter.toUriPart()
                     }
                 }
+
                 else -> {}
             }
         }
@@ -265,9 +269,7 @@ class WebNovelNovels : HttpSource(), NovelSource {
     }
 
     // Chapters
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url + "/catalog", headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url + "/catalog", headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = Jsoup.parse(response.body.string())
@@ -337,11 +339,12 @@ class WebNovelNovels : HttpSource(), NovelSource {
         fun toUriPart() = if (state == 0) "1" else "2"
     }
 
-    private class MaleGenreFilter : Filter.Select<String>(
-        "Male Genres",
-        arrayOf("All", "Action", "ACG", "Eastern", "Fantasy", "Games", "History", "Horror", "Realistic", "Sci-fi", "Sports", "Urban", "War"),
-        0,
-    ) {
+    private class MaleGenreFilter :
+        Filter.Select<String>(
+            "Male Genres",
+            arrayOf("All", "Action", "ACG", "Eastern", "Fantasy", "Games", "History", "Horror", "Realistic", "Sci-fi", "Sports", "Urban", "War"),
+            0,
+        ) {
         private val vals = arrayOf(
             "1", "novel-action-male", "novel-acg-male", "novel-eastern-male", "novel-fantasy-male",
             "novel-games-male", "novel-history-male", "novel-horror-male", "novel-realistic-male",
@@ -350,11 +353,12 @@ class WebNovelNovels : HttpSource(), NovelSource {
         fun toUriPart() = vals[state]
     }
 
-    private class FemaleGenreFilter : Filter.Select<String>(
-        "Female Genres",
-        arrayOf("All", "Fantasy", "General", "History", "LGBT+", "Sci-fi", "Teen", "Urban"),
-        0,
-    ) {
+    private class FemaleGenreFilter :
+        Filter.Select<String>(
+            "Female Genres",
+            arrayOf("All", "Fantasy", "General", "History", "LGBT+", "Sci-fi", "Teen", "Urban"),
+            0,
+        ) {
         private val vals = arrayOf(
             "2",
             "novel-fantasy-female",
@@ -376,11 +380,12 @@ class WebNovelNovels : HttpSource(), NovelSource {
         }
     }
 
-    private class SortFilter : Filter.Select<String>(
-        "Sort By",
-        arrayOf("Popular", "Recommended", "Most Collections", "Rating", "Time Updated"),
-        0,
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort By",
+            arrayOf("Popular", "Recommended", "Most Collections", "Rating", "Time Updated"),
+            0,
+        ) {
         fun toUriPart() = (state + 1).toString()
     }
 

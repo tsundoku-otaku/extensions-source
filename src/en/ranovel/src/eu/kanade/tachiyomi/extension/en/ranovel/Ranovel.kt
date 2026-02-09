@@ -6,11 +6,12 @@ import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import okhttp3.Request
 
-class Ranovel : MadaraNovel(
-    baseUrl = "https://ranovel.com",
-    name = "Ranovel",
-    lang = "en",
-) {
+class Ranovel :
+    MadaraNovel(
+        baseUrl = "https://ranovel.com",
+        name = "Ranovel",
+        lang = "en",
+    ) {
     override val useNewChapterEndpointDefault = true
 
     // ======================== Filters ========================
@@ -35,37 +36,44 @@ class Ranovel : MadaraNovel(
                         url += "&m_orderby=${filter.toUriPart()}"
                     }
                 }
+
                 is GenreFilter -> {
                     filter.state.filter { it.state }.forEach { genre ->
                         url += "&genre[]=${genre.value}"
                     }
                 }
+
                 is StatusFilter -> {
                     filter.state.filter { it.state }.forEach { status ->
                         url += "&status[]=${status.value}"
                     }
                 }
+
                 is AdultFilter -> {
                     val adult = filter.toUriPart()
                     if (adult.isNotEmpty()) {
                         url += "&adult=$adult"
                     }
                 }
+
                 is AuthorFilter -> {
                     if (filter.state.isNotBlank()) {
                         url += "&author=${filter.state.replace(" ", "+")}"
                     }
                 }
+
                 is ArtistFilter -> {
                     if (filter.state.isNotBlank()) {
                         url += "&artist=${filter.state.replace(" ", "+")}"
                     }
                 }
+
                 is ReleaseFilter -> {
                     if (filter.state.isNotBlank()) {
                         url += "&release=${filter.state}"
                     }
                 }
+
                 else -> {}
             }
         }
@@ -73,10 +81,11 @@ class Ranovel : MadaraNovel(
         return GET(url, headers)
     }
 
-    private class OrderFilter : Filter.Select<String>(
-        "Order by",
-        arrayOf("Relevance", "Latest", "A-Z", "Rating", "Trending", "Most Views", "New"),
-    ) {
+    private class OrderFilter :
+        Filter.Select<String>(
+            "Order by",
+            arrayOf("Relevance", "Latest", "A-Z", "Rating", "Trending", "Most Views", "New"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "latest"
             2 -> "alphabet"
@@ -90,58 +99,61 @@ class Ranovel : MadaraNovel(
 
     private class GenreCheckBox(val value: String, name: String) : Filter.CheckBox(name)
 
-    private class GenreFilter : Filter.Group<GenreCheckBox>(
-        "Genres",
-        listOf(
-            GenreCheckBox("action", "Action"),
-            GenreCheckBox("adventure", "Adventure"),
-            GenreCheckBox("comedy", "Comedy"),
-            GenreCheckBox("drama", "Drama"),
-            GenreCheckBox("ecchi", "Ecchi"),
-            GenreCheckBox("fantasy", "Fantasy"),
-            GenreCheckBox("gender-bender", "Gender Bender"),
-            GenreCheckBox("harem", "Harem"),
-            GenreCheckBox("historical", "Historical"),
-            GenreCheckBox("horror", "Horror"),
-            GenreCheckBox("josei", "Josei"),
-            GenreCheckBox("martial-arts", "Martial Arts"),
-            GenreCheckBox("mature", "Mature"),
-            GenreCheckBox("mystery", "Mystery"),
-            GenreCheckBox("psychological", "Psychological"),
-            GenreCheckBox("romance", "Romance"),
-            GenreCheckBox("school-life", "School Life"),
-            GenreCheckBox("sci-fi", "Sci-fi"),
-            GenreCheckBox("seinen", "Seinen"),
-            GenreCheckBox("shoujo", "Shoujo"),
-            GenreCheckBox("shounen", "Shounen"),
-            GenreCheckBox("slice-of-life", "Slice of Life"),
-            GenreCheckBox("sports", "Sports"),
-            GenreCheckBox("supernatural", "Supernatural"),
-            GenreCheckBox("tragedy", "Tragedy"),
-            GenreCheckBox("updating", "Updating"),
-            GenreCheckBox("wuxia", "Wuxia"),
-            GenreCheckBox("xuanhuan", "Xuanhuan"),
-            GenreCheckBox("yuri", "Yuri"),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<GenreCheckBox>(
+            "Genres",
+            listOf(
+                GenreCheckBox("action", "Action"),
+                GenreCheckBox("adventure", "Adventure"),
+                GenreCheckBox("comedy", "Comedy"),
+                GenreCheckBox("drama", "Drama"),
+                GenreCheckBox("ecchi", "Ecchi"),
+                GenreCheckBox("fantasy", "Fantasy"),
+                GenreCheckBox("gender-bender", "Gender Bender"),
+                GenreCheckBox("harem", "Harem"),
+                GenreCheckBox("historical", "Historical"),
+                GenreCheckBox("horror", "Horror"),
+                GenreCheckBox("josei", "Josei"),
+                GenreCheckBox("martial-arts", "Martial Arts"),
+                GenreCheckBox("mature", "Mature"),
+                GenreCheckBox("mystery", "Mystery"),
+                GenreCheckBox("psychological", "Psychological"),
+                GenreCheckBox("romance", "Romance"),
+                GenreCheckBox("school-life", "School Life"),
+                GenreCheckBox("sci-fi", "Sci-fi"),
+                GenreCheckBox("seinen", "Seinen"),
+                GenreCheckBox("shoujo", "Shoujo"),
+                GenreCheckBox("shounen", "Shounen"),
+                GenreCheckBox("slice-of-life", "Slice of Life"),
+                GenreCheckBox("sports", "Sports"),
+                GenreCheckBox("supernatural", "Supernatural"),
+                GenreCheckBox("tragedy", "Tragedy"),
+                GenreCheckBox("updating", "Updating"),
+                GenreCheckBox("wuxia", "Wuxia"),
+                GenreCheckBox("xuanhuan", "Xuanhuan"),
+                GenreCheckBox("yuri", "Yuri"),
+            ),
+        )
 
     private class StatusCheckBox(val value: String, name: String) : Filter.CheckBox(name)
 
-    private class StatusFilter : Filter.Group<StatusCheckBox>(
-        "Status",
-        listOf(
-            StatusCheckBox("on-going", "OnGoing"),
-            StatusCheckBox("end", "Completed"),
-            StatusCheckBox("canceled", "Canceled"),
-            StatusCheckBox("on-hold", "On Hold"),
-            StatusCheckBox("upcoming", "Upcoming"),
-        ),
-    )
+    private class StatusFilter :
+        Filter.Group<StatusCheckBox>(
+            "Status",
+            listOf(
+                StatusCheckBox("on-going", "OnGoing"),
+                StatusCheckBox("end", "Completed"),
+                StatusCheckBox("canceled", "Canceled"),
+                StatusCheckBox("on-hold", "On Hold"),
+                StatusCheckBox("upcoming", "Upcoming"),
+            ),
+        )
 
-    private class AdultFilter : Filter.Select<String>(
-        "Adult content",
-        arrayOf("All", "None adult content", "Only adult content"),
-    ) {
+    private class AdultFilter :
+        Filter.Select<String>(
+            "Adult content",
+            arrayOf("All", "None adult content", "Only adult content"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "0"
             2 -> "1"
