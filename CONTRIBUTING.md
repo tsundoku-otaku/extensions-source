@@ -503,7 +503,7 @@ There is some cases where existing sources changes their name on the website. To
 these changes in the extension, you need to explicity set the `id` to the same old value, otherwise
 it will get changed by the new `name` value and users will be forced to migrate back to the source.
 
-To get the current `id` value before the name change, you can search the source name in the [repository JSON file](https://github.com/keiyoushi/extensions/blob/repo/index.json)
+To get the current `id` value before the name change, you can search the source name in the [repository JSON file](https://github.com/tsundoku-otaku/extensions/blob/repo/index.json)
 by looking into the `sources` attribute of the extension. When you have the `id` copied, you can
 override it in the source:
 
