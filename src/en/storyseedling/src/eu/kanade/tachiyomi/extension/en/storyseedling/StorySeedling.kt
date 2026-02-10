@@ -27,7 +27,9 @@ import uy.kohesive.injekt.injectLazy
  * @see https://github.com/LNReader/lnreader-plugins StorySeedling.ts
  * Uses AJAX API with FormData for chapter list (series_toc action)
  */
-class StorySeedling : HttpSource(), NovelSource {
+class StorySeedling :
+    HttpSource(),
+    NovelSource {
 
     override val name = "StorySeedling"
     override val baseUrl = "https://storyseedling.com"
@@ -155,7 +157,9 @@ class StorySeedling : HttpSource(), NovelSource {
         filters.forEach { filter ->
             when (filter) {
                 is SortFilter -> orderBy = filter.toUriPart()
+
                 is StatusFilter -> status = filter.toUriPart()
+
                 is GenreFilter -> {
                     filter.state.forEach { genre ->
                         when {
@@ -164,6 +168,7 @@ class StorySeedling : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 is TagFilter -> {
                     filter.state.forEach { tag ->
                         when {
@@ -172,7 +177,9 @@ class StorySeedling : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 is TagsModeFilter -> tagsMode = filter.toUriPart()
+
                 else -> {}
             }
         }
@@ -323,6 +330,7 @@ class StorySeedling : HttpSource(), NovelSource {
                             }
                             if (chapters.isNotEmpty()) return chapters
                         }
+
                         // HTML string format (fallback)
                         chaptersData?.jsonPrimitive?.isString == true -> {
                             val chaptersHtml = chaptersData.jsonPrimitive.content
@@ -442,10 +450,11 @@ class StorySeedling : HttpSource(), NovelSource {
         TagFilter(),
     )
 
-    private class SortFilter : Filter.Select<String>(
-        "Order By",
-        arrayOf("Recent", "Popular", "Alphabetical", "Rating"),
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Order By",
+            arrayOf("Recent", "Popular", "Alphabetical", "Rating"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "recent"
             1 -> "views"
@@ -455,10 +464,11 @@ class StorySeedling : HttpSource(), NovelSource {
         }
     }
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Completed", "Hiatus", "Cancelled"),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Completed", "Hiatus", "Cancelled"),
+        ) {
         fun toUriPart() = when (state) {
             1 -> "ongoing"
             2 -> "completed"
@@ -469,182 +479,185 @@ class StorySeedling : HttpSource(), NovelSource {
     }
 
     private class Genre(name: String, val id: String) : Filter.TriState(name)
-    private class GenreFilter : Filter.Group<Genre>(
-        "Genres",
-        listOf(
-            Genre("Action", "111"),
-            Genre("Adult", "183"),
-            Genre("Adventure", "112"),
-            Genre("BL", "207"),
-            Genre("Comedy", "153"),
-            Genre("Drama", "115"),
-            Genre("Ecchi", "170"),
-            Genre("Fantasy", "114"),
-            Genre("Harem", "956"),
-            Genre("Historical", "178"),
-            Genre("Horror", "254"),
-            Genre("Josei", "472"),
-            Genre("Martial Arts", "1329"),
-            Genre("Mature", "427"),
-            Genre("Mecha", "1481"),
-            Genre("Mystery", "645"),
-            Genre("Psychological", "515"),
-            Genre("Reincarnation", "1031"),
-            Genre("Romance", "108"),
-            Genre("School Life", "545"),
-            Genre("Sci-Fi", "113"),
-            Genre("Seinen", "708"),
-            Genre("Shoujo", "228"),
-            Genre("Shoujo Ai", "1403"),
-            Genre("Shounen", "246"),
-            Genre("Shounen Ai", "718"),
-            Genre("Slice of Life", "157"),
-            Genre("Smut", "736"),
-            Genre("Sports", "966"),
-            Genre("Supernatural", "995"),
-            Genre("Tragedy", "985"),
-            Genre("Xianxia", "245"),
-            Genre("Xuanhuan", "428"),
-            Genre("Yaoi", "184"),
-            Genre("Yuri", "182"),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<Genre>(
+            "Genres",
+            listOf(
+                Genre("Action", "111"),
+                Genre("Adult", "183"),
+                Genre("Adventure", "112"),
+                Genre("BL", "207"),
+                Genre("Comedy", "153"),
+                Genre("Drama", "115"),
+                Genre("Ecchi", "170"),
+                Genre("Fantasy", "114"),
+                Genre("Harem", "956"),
+                Genre("Historical", "178"),
+                Genre("Horror", "254"),
+                Genre("Josei", "472"),
+                Genre("Martial Arts", "1329"),
+                Genre("Mature", "427"),
+                Genre("Mecha", "1481"),
+                Genre("Mystery", "645"),
+                Genre("Psychological", "515"),
+                Genre("Reincarnation", "1031"),
+                Genre("Romance", "108"),
+                Genre("School Life", "545"),
+                Genre("Sci-Fi", "113"),
+                Genre("Seinen", "708"),
+                Genre("Shoujo", "228"),
+                Genre("Shoujo Ai", "1403"),
+                Genre("Shounen", "246"),
+                Genre("Shounen Ai", "718"),
+                Genre("Slice of Life", "157"),
+                Genre("Smut", "736"),
+                Genre("Sports", "966"),
+                Genre("Supernatural", "995"),
+                Genre("Tragedy", "985"),
+                Genre("Xianxia", "245"),
+                Genre("Xuanhuan", "428"),
+                Genre("Yaoi", "184"),
+                Genre("Yuri", "182"),
+            ),
+        )
 
-    private class TagsModeFilter : Filter.Select<String>(
-        "Tags Mode",
-        arrayOf("AND (all selected)", "OR (any selected)"),
-    ) {
+    private class TagsModeFilter :
+        Filter.Select<String>(
+            "Tags Mode",
+            arrayOf("AND (all selected)", "OR (any selected)"),
+        ) {
         fun toUriPart() = if (state == 0) "and" else "or"
     }
 
     private class Tag(name: String, val id: String) : Filter.TriState(name)
-    private class TagFilter : Filter.Group<Tag>(
-        "Tags",
-        listOf(
-            Tag("+15", "1435"),
-            Tag("+18", "2213"),
-            Tag("1vs1", "2281"),
-            Tag("Abandoned Children", "445"),
-            Tag("Ability Steal", "262"),
-            Tag("Absent Parents", "263"),
-            Tag("Academy", "689"),
-            Tag("Accelerated Growth", "317"),
-            Tag("Acting", "748"),
-            Tag("Adapted to Anime", "792"),
-            Tag("Adapted to Drama", "848"),
-            Tag("Adapted to Manga", "265"),
-            Tag("Adapted to Manhwa", "1598"),
-            Tag("Adopted Protagonist", "917"),
-            Tag("Adventurers", "266"),
-            Tag("Age Progression", "447"),
-            Tag("Alchemy", "357"),
-            Tag("Alternate World", "1070"),
-            Tag("Amnesia", "1161"),
-            Tag("Ancient China", "500"),
-            Tag("Ancient Times", "670"),
-            Tag("Angels", "344"),
-            Tag("Animal Characteristics", "1137"),
-            Tag("Anti-Hero Lead", "2702"),
-            Tag("Aristocracy", "1630"),
-            Tag("Artifact Refining", "2281"),
-            Tag("Beautiful Female Lead", "445"),
-            Tag("Beastkin", "2281"),
-            Tag("Betrayal", "445"),
-            Tag("Cheats", "445"),
-            Tag("Childhood Friends", "1238"),
-            Tag("Clever Protagonist", "689"),
-            Tag("Cold Protagonist", "827"),
-            Tag("Complex Family Relationships", "447"),
-            Tag("Cultivation", "262"),
-            Tag("Cunning Protagonist", "263"),
-            Tag("Demons", "344"),
-            Tag("Dense Protagonist", "1161"),
-            Tag("Dragons", "344"),
-            Tag("Dungeon", "689"),
-            Tag("Dwarfs", "344"),
-            Tag("Early Romance", "1070"),
-            Tag("Easy Going Life", "157"),
-            Tag("Elves", "344"),
-            Tag("Evil Gods", "344"),
-            Tag("Evil Protagonist", "827"),
-            Tag("Fairies", "344"),
-            Tag("Family", "447"),
-            Tag("Female Protagonist", "183"),
-            Tag("Game Elements", "689"),
-            Tag("God Protagonist", "827"),
-            Tag("Gods", "344"),
-            Tag("Gore", "254"),
-            Tag("Guilds", "689"),
-            Tag("Hard-Working Protagonist", "317"),
-            Tag("Hated Protagonist", "827"),
-            Tag("Hidden Abilities", "262"),
-            Tag("Hiding True Identity", "748"),
-            Tag("Human-Nonhuman Relationship", "1137"),
-            Tag("Kingdom Building", "917"),
-            Tag("Knights", "266"),
-            Tag("Late Romance", "1070"),
-            Tag("Level System", "689"),
-            Tag("Love Interest Falls in Love First", "1070"),
-            Tag("Magic", "357"),
-            Tag("Male Protagonist", "112"),
-            Tag("Master-Servant Relationship", "447"),
-            Tag("Military", "266"),
-            Tag("Modern Day", "670"),
-            Tag("Monster Girls", "1137"),
-            Tag("Monsters", "344"),
-            Tag("Multiple POV", "447"),
-            Tag("Multiple Protagonists", "447"),
-            Tag("Multiple Realms", "1070"),
-            Tag("Multiple Reincarnated Individuals", "1031"),
-            Tag("Nobles", "917"),
-            Tag("Non-human Protagonist", "1137"),
-            Tag("OP MC", "827"),
-            Tag("Orphans", "445"),
-            Tag("Overpowered Protagonist", "827"),
-            Tag("Pets", "1137"),
-            Tag("Politics", "917"),
-            Tag("Possession", "1031"),
-            Tag("Power Couple", "827"),
-            Tag("Pregnancy", "447"),
-            Tag("Previous Life Talent", "1031"),
-            Tag("Protagonist Strong from the Start", "827"),
-            Tag("R-15", "1435"),
-            Tag("R-18", "2213"),
-            Tag("Rebirth", "1031"),
-            Tag("Reincarnated in Another World", "1031"),
-            Tag("Revenge", "827"),
-            Tag("Reverse Harem", "956"),
-            Tag("Royalty", "917"),
-            Tag("Ruthless Protagonist", "827"),
-            Tag("S*x", "2213"),
-            Tag("Scheming", "748"),
-            Tag("Second Chance", "1031"),
-            Tag("Secret Identity", "748"),
-            Tag("Secretive Protagonist", "748"),
-            Tag("Servants", "447"),
-            Tag("Slaves", "447"),
-            Tag("Slow Growth at Start", "317"),
-            Tag("Slow Romance", "1070"),
-            Tag("Smart MC", "689"),
-            Tag("Spirit Users", "357"),
-            Tag("Spirits", "344"),
-            Tag("Strong Female Lead", "183"),
-            Tag("Strong Male Lead", "112"),
-            Tag("Strong to Stronger", "317"),
-            Tag("Survival", "266"),
-            Tag("Sword And Magic", "357"),
-            Tag("Sword Wielder", "266"),
-            Tag("System", "689"),
-            Tag("Transmigration", "1031"),
-            Tag("Transported to Another World", "1070"),
-            Tag("Underestimated Protagonist", "827"),
-            Tag("Unique Cultivation Technique", "262"),
-            Tag("Vampires", "344"),
-            Tag("Villainess", "827"),
-            Tag("Weak to Strong", "317"),
-            Tag("Wealthy Characters", "917"),
-            Tag("Wizards", "357"),
-            Tag("World Travel", "1070"),
-        ),
-    )
+    private class TagFilter :
+        Filter.Group<Tag>(
+            "Tags",
+            listOf(
+                Tag("+15", "1435"),
+                Tag("+18", "2213"),
+                Tag("1vs1", "2281"),
+                Tag("Abandoned Children", "445"),
+                Tag("Ability Steal", "262"),
+                Tag("Absent Parents", "263"),
+                Tag("Academy", "689"),
+                Tag("Accelerated Growth", "317"),
+                Tag("Acting", "748"),
+                Tag("Adapted to Anime", "792"),
+                Tag("Adapted to Drama", "848"),
+                Tag("Adapted to Manga", "265"),
+                Tag("Adapted to Manhwa", "1598"),
+                Tag("Adopted Protagonist", "917"),
+                Tag("Adventurers", "266"),
+                Tag("Age Progression", "447"),
+                Tag("Alchemy", "357"),
+                Tag("Alternate World", "1070"),
+                Tag("Amnesia", "1161"),
+                Tag("Ancient China", "500"),
+                Tag("Ancient Times", "670"),
+                Tag("Angels", "344"),
+                Tag("Animal Characteristics", "1137"),
+                Tag("Anti-Hero Lead", "2702"),
+                Tag("Aristocracy", "1630"),
+                Tag("Artifact Refining", "2281"),
+                Tag("Beautiful Female Lead", "445"),
+                Tag("Beastkin", "2281"),
+                Tag("Betrayal", "445"),
+                Tag("Cheats", "445"),
+                Tag("Childhood Friends", "1238"),
+                Tag("Clever Protagonist", "689"),
+                Tag("Cold Protagonist", "827"),
+                Tag("Complex Family Relationships", "447"),
+                Tag("Cultivation", "262"),
+                Tag("Cunning Protagonist", "263"),
+                Tag("Demons", "344"),
+                Tag("Dense Protagonist", "1161"),
+                Tag("Dragons", "344"),
+                Tag("Dungeon", "689"),
+                Tag("Dwarfs", "344"),
+                Tag("Early Romance", "1070"),
+                Tag("Easy Going Life", "157"),
+                Tag("Elves", "344"),
+                Tag("Evil Gods", "344"),
+                Tag("Evil Protagonist", "827"),
+                Tag("Fairies", "344"),
+                Tag("Family", "447"),
+                Tag("Female Protagonist", "183"),
+                Tag("Game Elements", "689"),
+                Tag("God Protagonist", "827"),
+                Tag("Gods", "344"),
+                Tag("Gore", "254"),
+                Tag("Guilds", "689"),
+                Tag("Hard-Working Protagonist", "317"),
+                Tag("Hated Protagonist", "827"),
+                Tag("Hidden Abilities", "262"),
+                Tag("Hiding True Identity", "748"),
+                Tag("Human-Nonhuman Relationship", "1137"),
+                Tag("Kingdom Building", "917"),
+                Tag("Knights", "266"),
+                Tag("Late Romance", "1070"),
+                Tag("Level System", "689"),
+                Tag("Love Interest Falls in Love First", "1070"),
+                Tag("Magic", "357"),
+                Tag("Male Protagonist", "112"),
+                Tag("Master-Servant Relationship", "447"),
+                Tag("Military", "266"),
+                Tag("Modern Day", "670"),
+                Tag("Monster Girls", "1137"),
+                Tag("Monsters", "344"),
+                Tag("Multiple POV", "447"),
+                Tag("Multiple Protagonists", "447"),
+                Tag("Multiple Realms", "1070"),
+                Tag("Multiple Reincarnated Individuals", "1031"),
+                Tag("Nobles", "917"),
+                Tag("Non-human Protagonist", "1137"),
+                Tag("OP MC", "827"),
+                Tag("Orphans", "445"),
+                Tag("Overpowered Protagonist", "827"),
+                Tag("Pets", "1137"),
+                Tag("Politics", "917"),
+                Tag("Possession", "1031"),
+                Tag("Power Couple", "827"),
+                Tag("Pregnancy", "447"),
+                Tag("Previous Life Talent", "1031"),
+                Tag("Protagonist Strong from the Start", "827"),
+                Tag("R-15", "1435"),
+                Tag("R-18", "2213"),
+                Tag("Rebirth", "1031"),
+                Tag("Reincarnated in Another World", "1031"),
+                Tag("Revenge", "827"),
+                Tag("Reverse Harem", "956"),
+                Tag("Royalty", "917"),
+                Tag("Ruthless Protagonist", "827"),
+                Tag("S*x", "2213"),
+                Tag("Scheming", "748"),
+                Tag("Second Chance", "1031"),
+                Tag("Secret Identity", "748"),
+                Tag("Secretive Protagonist", "748"),
+                Tag("Servants", "447"),
+                Tag("Slaves", "447"),
+                Tag("Slow Growth at Start", "317"),
+                Tag("Slow Romance", "1070"),
+                Tag("Smart MC", "689"),
+                Tag("Spirit Users", "357"),
+                Tag("Spirits", "344"),
+                Tag("Strong Female Lead", "183"),
+                Tag("Strong Male Lead", "112"),
+                Tag("Strong to Stronger", "317"),
+                Tag("Survival", "266"),
+                Tag("Sword And Magic", "357"),
+                Tag("Sword Wielder", "266"),
+                Tag("System", "689"),
+                Tag("Transmigration", "1031"),
+                Tag("Transported to Another World", "1070"),
+                Tag("Underestimated Protagonist", "827"),
+                Tag("Unique Cultivation Technique", "262"),
+                Tag("Vampires", "344"),
+                Tag("Villainess", "827"),
+                Tag("Weak to Strong", "317"),
+                Tag("Wealthy Characters", "917"),
+                Tag("Wizards", "357"),
+                Tag("World Travel", "1070"),
+            ),
+        )
 }

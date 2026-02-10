@@ -31,7 +31,10 @@ import java.net.URLEncoder
  * NovelHub.net - Novel reading extension
  * Per instructions.html: Popular from trending section, flip chapter list
  */
-class NovelHub : HttpSource(), NovelSource, ConfigurableSource {
+class NovelHub :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "NovelHub"
     override val baseUrl = "https://novelhub.net"
@@ -124,9 +127,7 @@ class NovelHub : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/latest?page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/latest?page=$page", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -164,6 +165,7 @@ class NovelHub : HttpSource(), NovelSource, ConfigurableSource {
                         return GET("$baseUrl/genre/$genre?page=$page", headers)
                     }
                 }
+
                 else -> {}
             }
         }
@@ -350,8 +352,7 @@ class NovelHub : HttpSource(), NovelSource, ConfigurableSource {
         }
     }
 
-    class GenreFilter(name: String, private val genres: List<Pair<String, String>>) :
-        Filter.Select<String>(name, arrayOf("All") + genres.map { it.second }.toTypedArray()) {
+    class GenreFilter(name: String, private val genres: List<Pair<String, String>>) : Filter.Select<String>(name, arrayOf("All") + genres.map { it.second }.toTypedArray()) {
         fun toValue(): String? = if (state == 0) null else genres.getOrNull(state - 1)?.first
     }
 

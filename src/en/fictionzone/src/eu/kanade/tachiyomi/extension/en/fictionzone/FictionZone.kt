@@ -39,7 +39,10 @@ import uy.kohesive.injekt.injectLazy
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
+class FictionZone :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "Fiction Zone"
 
@@ -118,9 +121,7 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         return POST(apiUrl, this.headers, requestBody)
     }
 
-    override fun popularMangaRequest(page: Int): Request {
-        return apiRequest("/platform/browse?page=$page&page_size=20&sort_by=bookmark_count&sort_order=desc&include_genres=true")
-    }
+    override fun popularMangaRequest(page: Int): Request = apiRequest("/platform/browse?page=$page&page_size=20&sort_by=bookmark_count&sort_order=desc&include_genres=true")
 
     override fun popularMangaParse(response: Response): MangasPage {
         val jsonString = response.body.string()
@@ -152,9 +153,13 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                         } else {
                             null
                         }
-                    } catch (e: Exception) { null }
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
-            } catch (e: Exception) { null }
+            } catch (e: Exception) {
+                null
+            }
         }
 
         val pagination = data["pagination"]?.jsonObject
@@ -163,9 +168,7 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         return MangasPage(mangas, hasNext)
     }
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return apiRequest("/platform/browse?page=$page&page_size=20&sort_by=created_at&sort_order=desc&include_genres=true")
-    }
+    override fun latestUpdatesRequest(page: Int): Request = apiRequest("/platform/browse?page=$page&page_size=20&sort_by=created_at&sort_order=desc&include_genres=true")
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -175,6 +178,7 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
 
         return when (sourceId) {
             "fictionzone", "all" -> buildPlatformSearchRequest(page, query, filters)
+
             else -> {
                 if (query.isNotEmpty()) {
                     apiRequest("/omniportal/search?source_id=$sourceId&query=${java.net.URLEncoder.encode(query, "UTF-8")}&page=$page&translate=en", "GET", includeAuth = true)
@@ -203,16 +207,19 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                     params.add("sort_by=${sort.first}")
                     params.add("sort_order=${sort.second}")
                 }
+
                 is GenreFilter -> {
                     val genres = filter.state.filter { it.state }.map { it.id }.joinToString(",")
                     if (genres.isNotEmpty()) params.add("genre_ids=$genres")
                 }
+
                 is TagFilter -> {
                     val includeTags = filter.state.filter { it.state == Filter.TriState.STATE_INCLUDE }.map { it.id }.joinToString(",")
                     val excludeTags = filter.state.filter { it.state == Filter.TriState.STATE_EXCLUDE }.map { it.id }.joinToString(",")
                     if (includeTags.isNotEmpty()) params.add("tag_ids=$includeTags")
                     if (excludeTags.isNotEmpty()) params.add("exclude_tag_ids=$excludeTags")
                 }
+
                 else -> {}
             }
         }
@@ -220,9 +227,7 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     override fun searchMangaParse(response: Response): MangasPage = popularMangaParse(response)
-    override fun getMangaUrl(manga: SManga): String {
-        return baseUrl + manga.url
-    }
+    override fun getMangaUrl(manga: SManga): String = baseUrl + manga.url
     override fun mangaDetailsRequest(manga: SManga): Request {
         if (manga.url.startsWith("/omniportal/")) {
             // Parse: /omniportal/{source_id}/{source_key}
@@ -280,7 +285,9 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
 
             status = when (data["status"]?.jsonPrimitive?.contentOrNull) {
                 "1", "ongoing" -> SManga.ONGOING
+
                 "2", "completed" -> SManga.COMPLETED
+
                 else -> when (data["status"]?.jsonPrimitive?.int) {
                     1 -> SManga.ONGOING
                     2 -> SManga.COMPLETED
@@ -340,7 +347,9 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                     date_upload = try {
                         val dateStr = obj["published_date"]?.jsonPrimitive?.contentOrNull
                         if (dateStr != null) dateFormat.parse(dateStr)?.time ?: 0L else 0L
-                    } catch (e: Exception) { 0L }
+                    } catch (e: Exception) {
+                        0L
+                    }
 
                     chapter_number = obj["chapter_number"]?.jsonPrimitive?.double?.toFloat() ?: -1f
                 }
@@ -353,17 +362,11 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
 
     private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
-    override fun pageListRequest(chapter: SChapter): Request {
-        throw UnsupportedOperationException("Not used")
-    }
+    override fun pageListRequest(chapter: SChapter): Request = throw UnsupportedOperationException("Not used")
 
-    override fun pageListParse(response: Response): List<Page> {
-        throw UnsupportedOperationException("Not used")
-    }
+    override fun pageListParse(response: Response): List<Page> = throw UnsupportedOperationException("Not used")
 
-    override fun fetchPageList(chapter: SChapter): rx.Observable<List<Page>> {
-        return rx.Observable.just(listOf(Page(0, chapter.url)))
-    }
+    override fun fetchPageList(chapter: SChapter): rx.Observable<List<Page>> = rx.Observable.just(listOf(Page(0, chapter.url)))
 
     override suspend fun fetchPageText(page: Page): String {
         // Platform: "/platform/chapter-content?novel_id=15752&chapter_id=1136402"
@@ -419,17 +422,29 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
 
     private fun getSources(): List<Pair<String, String>> {
         val cached = preferences.getString("sources_cache", null) ?: return emptyList()
-        return try { json.decodeFromString(cached) } catch (e: Exception) { emptyList() }
+        return try {
+            json.decodeFromString(cached)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     private fun getGenres(): List<Pair<String, String>> {
         val cached = preferences.getString("genres_cache", null) ?: return emptyList()
-        return try { json.decodeFromString(cached) } catch (e: Exception) { emptyList() }
+        return try {
+            json.decodeFromString(cached)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     private fun getTags(): List<Pair<String, String>> {
         val cached = preferences.getString("tags_cache", null) ?: return emptyList()
-        return try { json.decodeFromString(cached) } catch (e: Exception) { emptyList() }
+        return try {
+            json.decodeFromString(cached)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     private fun refreshMetadata() {
@@ -445,7 +460,9 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                 }
                 preferences.edit().putString("genres_cache", json.encodeToString(genres)).apply()
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         try {
             val tagsReq = apiRequest("/platform/tags")
@@ -459,7 +476,9 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                 }
                 preferences.edit().putString("tags_cache", json.encodeToString(tags)).apply()
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         try {
             val sourcesReq = apiRequest("/omniportal/sources")
@@ -473,7 +492,9 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
                 }
                 preferences.edit().putString("sources_cache", json.encodeToString(sources)).apply()
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
@@ -492,32 +513,31 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
         }.also(screen::addPreference)
     }
 
-    class SortFilter : Filter.Sort(
-        "Sort",
-        arrayOf(
-            "Most Popular",
-            "Latest Update",
-            "Newest",
-            "Most Chapters",
-            "Highest Rated",
-            "Most Bookmarked",
-            "Title A-Z",
-            "Title Z-A",
-        ),
-        Selection(0, false),
-    ) {
-        fun toUriPart(): Pair<String, String> {
-            return when (state?.index) {
-                0 -> "bookmark_count" to "desc"
-                1 -> "updated_at" to "desc"
-                2 -> "created_at" to "desc"
-                3 -> "chapter_count" to "desc"
-                4 -> "rating" to "desc"
-                5 -> "bookmark_count" to "desc"
-                6 -> "title" to "asc"
-                7 -> "title" to "desc"
-                else -> "bookmark_count" to "desc"
-            }
+    class SortFilter :
+        Filter.Sort(
+            "Sort",
+            arrayOf(
+                "Most Popular",
+                "Latest Update",
+                "Newest",
+                "Most Chapters",
+                "Highest Rated",
+                "Most Bookmarked",
+                "Title A-Z",
+                "Title Z-A",
+            ),
+            Selection(0, false),
+        ) {
+        fun toUriPart(): Pair<String, String> = when (state?.index) {
+            0 -> "bookmark_count" to "desc"
+            1 -> "updated_at" to "desc"
+            2 -> "created_at" to "desc"
+            3 -> "chapter_count" to "desc"
+            4 -> "rating" to "desc"
+            5 -> "bookmark_count" to "desc"
+            6 -> "title" to "asc"
+            7 -> "title" to "desc"
+            else -> "bookmark_count" to "desc"
         }
     }
 
@@ -529,8 +549,6 @@ class FictionZone : HttpSource(), NovelSource, ConfigurableSource {
 
     class SourceFilter(sources: List<Pair<String, String>>) : Filter.Select<String>("Source", arrayOf("Fiction Zone", "All Sources") + sources.map { it.second }.toTypedArray()) {
         val sourceIds = listOf("fictionzone", "all") + sources.map { it.first }
-        fun toUriPart(): String {
-            return sourceIds[state]
-        }
+        fun toUriPart(): String = sourceIds[state]
     }
 }

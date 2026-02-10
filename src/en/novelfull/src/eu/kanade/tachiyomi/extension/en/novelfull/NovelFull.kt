@@ -6,18 +6,17 @@ import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import okhttp3.Request
 
-class NovelFull : ReadNovelFull(
-    name = "NovelFull",
-    baseUrl = "https://novelfull.com",
-    lang = "en",
-) {
+class NovelFull :
+    ReadNovelFull(
+        name = "NovelFull",
+        baseUrl = "https://novelfull.com",
+        lang = "en",
+    ) {
     override val latestPage = "latest-release-novel"
     override val searchPage = "search"
     override val chapterListing = "ajax-chapter-option"
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/most-popular?page=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/most-popular?page=$page", headers)
 
     // ======================== Filters ========================
 
@@ -28,11 +27,12 @@ class NovelFull : ReadNovelFull(
         GenreFilter(),
     )
 
-    private class TypeFilter : Filter.Select<String>(
-        "Type",
-        arrayOf("Most Popular", "Hot Novel", "Completed Novel"),
-        0,
-    ) {
+    private class TypeFilter :
+        Filter.Select<String>(
+            "Type",
+            arrayOf("Most Popular", "Hot Novel", "Completed Novel"),
+            0,
+        ) {
         fun toUriPart() = when (state) {
             0 -> "most-popular"
             1 -> "hot-novel"
@@ -41,11 +41,12 @@ class NovelFull : ReadNovelFull(
         }
     }
 
-    private class GenreFilter : Filter.Select<String>(
-        "Genre",
-        genres.map { it.first }.toTypedArray(),
-        0,
-    ) {
+    private class GenreFilter :
+        Filter.Select<String>(
+            "Genre",
+            genres.map { it.first }.toTypedArray(),
+            0,
+        ) {
         fun toUriPart() = genres[state].second
     }
 

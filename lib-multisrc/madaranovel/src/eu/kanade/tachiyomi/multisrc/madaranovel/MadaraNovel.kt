@@ -33,7 +33,9 @@ open class MadaraNovel(
     override val baseUrl: String,
     override val name: String,
     override val lang: String = "en",
-) : HttpSource(), NovelSource, ConfigurableSource {
+) : HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val isNovelSource = true
 
@@ -123,11 +125,13 @@ open class MadaraNovel(
                         url += "&m_orderby=${filter.toUriPart()}"
                     }
                 }
+
                 is SortFilter -> {
                     if (filter.state != 0) {
                         url += "&m_orderby=${filter.toUriPart()}"
                     }
                 }
+
                 else -> {}
             }
         }
@@ -164,6 +168,7 @@ open class MadaraNovel(
                 // Ensure URL is relative path (not full URL)
                 val relativeUrl = when {
                     url.startsWith(baseUrl) -> url.removePrefix(baseUrl)
+
                     url.startsWith("http://") || url.startsWith("https://") -> {
                         // Extract path from full URL
                         try {
@@ -172,7 +177,9 @@ open class MadaraNovel(
                             url
                         }
                     }
+
                     url.startsWith("/") -> url
+
                     else -> "/$url"
                 }
 
@@ -238,8 +245,8 @@ open class MadaraNovel(
                 .map { it.text().trim() }
                 .joinToString(", ")
             status = if (doc.select(".post-content_item, .post-content")
-                .find { it.selectFirst("h5")?.text() == "Status" }
-                ?.selectFirst(".summary-content")?.text()?.contains("Ongoing", ignoreCase = true) == true
+                    .find { it.selectFirst("h5")?.text() == "Status" }
+                    ?.selectFirst(".summary-content")?.text()?.contains("Ongoing", ignoreCase = true) == true
             ) {
                 SManga.ONGOING
             } else {
@@ -306,10 +313,17 @@ open class MadaraNovel(
                         // Ensure URL is relative path
                         val relativeChapterUrl = when {
                             chapterUrl.startsWith(baseUrl) -> chapterUrl.removePrefix(baseUrl)
+
                             chapterUrl.startsWith("http://") || chapterUrl.startsWith("https://") -> {
-                                try { java.net.URI(chapterUrl).path } catch (e: Exception) { chapterUrl }
+                                try {
+                                    java.net.URI(chapterUrl).path
+                                } catch (e: Exception) {
+                                    chapterUrl
+                                }
                             }
+
                             chapterUrl.startsWith("/") -> chapterUrl
+
                             else -> "/$chapterUrl"
                         }
 
@@ -456,10 +470,11 @@ open class MadaraNovel(
         private const val PREF_RAW_HTML = "pref_raw_html"
     }
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Completed"),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Completed"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> ""
             1 -> "latest"
@@ -468,10 +483,11 @@ open class MadaraNovel(
         }
     }
 
-    private class SortFilter : Filter.Select<String>(
-        "Sort",
-        arrayOf("Latest", "Trending", "Rating", "Review"),
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort",
+            arrayOf("Latest", "Trending", "Rating", "Review"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "latest"
             1 -> "trending"

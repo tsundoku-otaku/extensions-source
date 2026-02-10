@@ -21,7 +21,9 @@ import java.util.Calendar
  * URL pattern: /list/{genre}/all-{sort}-{page-1}.html
  * Search: POST to /e/search/index.php (no pagination)
  */
-class FansMTL : HttpSource(), NovelSource {
+class FansMTL :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Fans MTL"
     override val baseUrl = "https://www.fanmtl.com"
@@ -93,9 +95,7 @@ class FansMTL : HttpSource(), NovelSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/list/all/all-lastdotime-${page - 1}.html", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/list/all/all-lastdotime-${page - 1}.html", headers)
 
     override fun latestUpdatesParse(response: Response) = popularMangaParse(response)
 
@@ -225,9 +225,7 @@ class FansMTL : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     override fun imageUrlParse(response: Response) = ""
 
@@ -246,28 +244,29 @@ class FansMTL : HttpSource(), NovelSource {
         SortFilter(),
     )
 
-    private class GenreFilter : Filter.Select<String>(
-        "Genre",
-        arrayOf(
-            "All", "Action", "Adventure", "Anime", "BG", "Billionaire", "BL",
-            "Comedy", "Competitive Sports", "Contemporary Romance", "Crossing",
-            "Derivative Fanfic", "Detective", "Douluo", "Dragon Ball", "Drama",
-            "Eastern Fantasy", "Ecchi", "Elf", "Faloo", "Fan-Fiction", "Fantasy",
-            "Fantasy Romance", "Football", "Game", "Gender Bender", "GL", "Harem",
-            "Historical", "Historical Romance", "Hogwarts", "Horror", "Hot",
-            "Josei", "LGBT", "Lolicon", "Magic", "Magical Realism", "Martial Arts",
-            "Marvel", "Mecha", "Military", "Modern Life", "Movies", "Mystery",
-            "Naruto", "NBA", "One Piece", "Other", "Pokemon", "Psychological",
-            "Realistic Fiction", "Rebirth", "Reincarnation", "Romance",
-            "School Life", "Sci-fi", "Science Fiction", "Secret", "Seinen",
-            "Shoujo", "Shoujo Ai", "Shounen", "Shounen Ai", "Sign in",
-            "Slice of Life", "Smut", "Sports", "Supernatural", "Suspense",
-            "System", "Systemflow", "Terror", "Tragedy", "Travel Through Time",
-            "Urban Life", "Video Games", "Villain", "War", "Wuxia", "Xianxia",
-            "Xuanhuan", "Yaoi", "Yuri",
-        ),
-        0,
-    ) {
+    private class GenreFilter :
+        Filter.Select<String>(
+            "Genre",
+            arrayOf(
+                "All", "Action", "Adventure", "Anime", "BG", "Billionaire", "BL",
+                "Comedy", "Competitive Sports", "Contemporary Romance", "Crossing",
+                "Derivative Fanfic", "Detective", "Douluo", "Dragon Ball", "Drama",
+                "Eastern Fantasy", "Ecchi", "Elf", "Faloo", "Fan-Fiction", "Fantasy",
+                "Fantasy Romance", "Football", "Game", "Gender Bender", "GL", "Harem",
+                "Historical", "Historical Romance", "Hogwarts", "Horror", "Hot",
+                "Josei", "LGBT", "Lolicon", "Magic", "Magical Realism", "Martial Arts",
+                "Marvel", "Mecha", "Military", "Modern Life", "Movies", "Mystery",
+                "Naruto", "NBA", "One Piece", "Other", "Pokemon", "Psychological",
+                "Realistic Fiction", "Rebirth", "Reincarnation", "Romance",
+                "School Life", "Sci-fi", "Science Fiction", "Secret", "Seinen",
+                "Shoujo", "Shoujo Ai", "Shounen", "Shounen Ai", "Sign in",
+                "Slice of Life", "Smut", "Sports", "Supernatural", "Suspense",
+                "System", "Systemflow", "Terror", "Tragedy", "Travel Through Time",
+                "Urban Life", "Video Games", "Villain", "War", "Wuxia", "Xianxia",
+                "Xuanhuan", "Yaoi", "Yuri",
+            ),
+            0,
+        ) {
         fun toUriPart(): String {
             val values = arrayOf(
                 "all", "action", "adventure", "anime", "bg", "billionaire", "bl",
@@ -291,11 +290,12 @@ class FansMTL : HttpSource(), NovelSource {
         }
     }
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Completed", "Ongoing"),
-        0,
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Completed", "Ongoing"),
+            0,
+        ) {
         fun toUriPart() = when (state) {
             0 -> "all"
             1 -> "Completed"
@@ -304,11 +304,12 @@ class FansMTL : HttpSource(), NovelSource {
         }
     }
 
-    private class SortFilter : Filter.Select<String>(
-        "Sort by",
-        arrayOf("New", "Popular", "Latest Update"),
-        0,
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort by",
+            arrayOf("New", "Popular", "Latest Update"),
+            0,
+        ) {
         fun toUriPart() = when (state) {
             0 -> "newstime"
             1 -> "onclick"

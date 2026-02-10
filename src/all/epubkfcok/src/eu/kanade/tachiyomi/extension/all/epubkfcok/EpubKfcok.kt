@@ -15,7 +15,9 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
-class EpubKfcok : HttpSource(), NovelSource {
+class EpubKfcok :
+    HttpSource(),
+    NovelSource {
 
     override val name = "EPUB KFCok"
     override val baseUrl = "https://epub.kfcok.net"
@@ -73,6 +75,7 @@ class EpubKfcok : HttpSource(), NovelSource {
                         url.append("&tags[]=$tag")
                     }
                 }
+
                 is InversePaginationFilter -> {
                     if (filter.state && cachedTotalPages > 0) {
                         // Calculate inverse page
@@ -82,6 +85,7 @@ class EpubKfcok : HttpSource(), NovelSource {
                         }
                     }
                 }
+
                 else -> {}
             }
         }
@@ -93,9 +97,7 @@ class EpubKfcok : HttpSource(), NovelSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = Jsoup.parse(response.body.string())
@@ -145,9 +147,7 @@ class EpubKfcok : HttpSource(), NovelSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = Jsoup.parse(response.body.string())
@@ -187,13 +187,9 @@ class EpubKfcok : HttpSource(), NovelSource {
         return GET(url, headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
-    override fun fetchPageList(chapter: SChapter): rx.Observable<List<Page>> {
-        return rx.Observable.just(listOf(Page(0, if (chapter.url.startsWith("http")) chapter.url else baseUrl + chapter.url)))
-    }
+    override fun fetchPageList(chapter: SChapter): rx.Observable<List<Page>> = rx.Observable.just(listOf(Page(0, if (chapter.url.startsWith("http")) chapter.url else baseUrl + chapter.url)))
 
     // ======================== Page Text (Novel) ========================
 
@@ -234,14 +230,12 @@ class EpubKfcok : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            Filter.Header("Enter tags separated by commas"),
-            TagFilter("Tags"),
-            Filter.Separator(),
-            InversePaginationFilter("Inverse Pagination (newest first)"),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Enter tags separated by commas"),
+        TagFilter("Tags"),
+        Filter.Separator(),
+        InversePaginationFilter("Inverse Pagination (newest first)"),
+    )
 
     class TagFilter(name: String) : Filter.Text(name)
     class InversePaginationFilter(name: String) : Filter.CheckBox(name, false)
@@ -253,7 +247,13 @@ class EpubKfcok : HttpSource(), NovelSource {
         val href = link.attr("href")
 
         return SManga.create().apply {
-            url = if (href.startsWith("http")) href.removePrefix(baseUrl) else if (href.startsWith("/")) href else "/$href"
+            url = if (href.startsWith("http")) {
+                href.removePrefix(baseUrl)
+            } else if (href.startsWith("/")) {
+                href
+            } else {
+                "/$href"
+            }
             title = card.selectFirst("div.info strong")?.text()?.trim() ?: ""
 
             // Extract cover URL from style attribute

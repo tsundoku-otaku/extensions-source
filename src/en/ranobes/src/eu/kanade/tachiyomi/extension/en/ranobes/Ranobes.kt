@@ -21,7 +21,10 @@ import okhttp3.Response
 import org.jsoup.Jsoup
 import java.net.URLEncoder
 
-class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
+class Ranobes :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     private val preferences: SharedPreferences by getPreferencesLazy()
 
@@ -45,16 +48,14 @@ class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return if (page == 1) {
-            GET("$baseUrl/ranking/", headers)
-        } else {
-            val formBody = FormBody.Builder()
-                .add("cstart", page.toString())
-                .add("ajax", "true")
-                .build()
-            POST("$baseUrl/ranking/", headers, formBody)
-        }
+    override fun popularMangaRequest(page: Int): Request = if (page == 1) {
+        GET("$baseUrl/ranking/", headers)
+    } else {
+        val formBody = FormBody.Builder()
+            .add("cstart", page.toString())
+            .add("ajax", "true")
+            .build()
+        POST("$baseUrl/ranking/", headers, formBody)
     }
 
     override fun popularMangaParse(response: Response): MangasPage {
@@ -86,9 +87,7 @@ class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/updates/page/$page/", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/updates/page/$page/", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
@@ -245,15 +244,11 @@ class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
         return MangasPage(novels, hasNextPage)
     }
 
-    private fun parseNovelsPage(response: Response): MangasPage {
-        return popularMangaParse(response)
-    }
+    private fun parseNovelsPage(response: Response): MangasPage = popularMangaParse(response)
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = Jsoup.parse(response.body.string())
@@ -477,13 +472,9 @@ class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Pages ========================
 
-    override fun pageListRequest(chapter: SChapter): Request {
-        return GET(baseUrl + chapter.url, headers)
-    }
+    override fun pageListRequest(chapter: SChapter): Request = GET(baseUrl + chapter.url, headers)
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -510,7 +501,9 @@ class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
                         content.append("<p>$text</p>\n")
                     }
                 }
+
                 "br" -> content.append("<br>\n")
+
                 else -> {
                     val text = element.text()?.trim()
                     if (!text.isNullOrEmpty()) {
@@ -527,15 +520,13 @@ class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            Filter.Header("Note: Text search overrides filters"),
-            Filter.Separator(),
-            GenreFilter(),
-            StatusFilter(),
-            SortFilter(),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Note: Text search overrides filters"),
+        Filter.Separator(),
+        GenreFilter(),
+        StatusFilter(),
+        SortFilter(),
+    )
 
     class GenreFilter : Filter.Select<String>("Genre", genres.map { it.first }.toTypedArray()) {
         fun getSelectedValue(): String? = if (state > 0) genres[state].second else null
@@ -637,26 +628,32 @@ class Ranobes : HttpSource(), NovelSource, ConfigurableSource {
                 val minutes = lower.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1
                 now - minutes * 60 * 1000
             }
+
             lower.contains("hour") -> {
                 val hours = lower.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1
                 now - hours * 60 * 60 * 1000
             }
+
             lower.contains("day") -> {
                 val days = lower.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1
                 now - days * 24 * 60 * 60 * 1000
             }
+
             lower.contains("week") -> {
                 val weeks = lower.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1
                 now - weeks * 7 * 24 * 60 * 60 * 1000
             }
+
             lower.contains("month") -> {
                 val months = lower.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1
                 now - months * 30L * 24 * 60 * 60 * 1000
             }
+
             lower.contains("year") -> {
                 val years = lower.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 1
                 now - years * 365L * 24 * 60 * 60 * 1000
             }
+
             else -> 0L
         }
     }

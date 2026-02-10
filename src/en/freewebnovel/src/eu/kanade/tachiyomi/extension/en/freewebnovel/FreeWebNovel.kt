@@ -21,7 +21,9 @@ import org.jsoup.Jsoup
  * - Genre browsing: GET /genre/GenreName/page
  * - Popular/Latest: GET /sort/X/page
  */
-class FreeWebNovel : HttpSource(), NovelSource {
+class FreeWebNovel :
+    HttpSource(),
+    NovelSource {
 
     override val name = "FreeWebNovel"
     override val baseUrl = "https://freewebnovel.com"
@@ -154,9 +156,11 @@ class FreeWebNovel : HttpSource(), NovelSource {
                     text.contains("Author", ignoreCase = true) ->
                         author = element.select("a").joinToString { it.text().trim() }
                             .ifEmpty { text.substringAfter(":").trim() }
+
                     text.contains("Genre", ignoreCase = true) ->
                         genre = element.select("a").joinToString { it.text().trim() }
                             .ifEmpty { text.substringAfter(":").trim() }
+
                     text.contains("Status", ignoreCase = true) ->
                         status = parseStatus(text.substringAfter(":").trim())
                 }
@@ -189,9 +193,7 @@ class FreeWebNovel : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     override fun imageUrlParse(response: Response) = ""
 
@@ -226,17 +228,18 @@ class FreeWebNovel : HttpSource(), NovelSource {
         GenreFilter(),
     )
 
-    private class GenreFilter : Filter.Select<String>(
-        "Genre",
-        arrayOf(
-            "All", "Action", "Adult", "Adventure", "Comedy", "Drama", "Ecchi",
-            "Fantasy", "Gender Bender", "Harem", "Historical", "Horror", "Josei",
-            "Martial Arts", "Mature", "Mecha", "Mystery", "Psychological", "Romance",
-            "School Life", "Sci-fi", "Seinen", "Shoujo", "Shounen", "Slice of Life",
-            "Smut", "Sports", "Supernatural", "Tragedy", "Wuxia", "Xianxia", "Xuanhuan", "Yaoi", "Yuri",
-        ),
-        0,
-    ) {
+    private class GenreFilter :
+        Filter.Select<String>(
+            "Genre",
+            arrayOf(
+                "All", "Action", "Adult", "Adventure", "Comedy", "Drama", "Ecchi",
+                "Fantasy", "Gender Bender", "Harem", "Historical", "Horror", "Josei",
+                "Martial Arts", "Mature", "Mecha", "Mystery", "Psychological", "Romance",
+                "School Life", "Sci-fi", "Seinen", "Shoujo", "Shounen", "Slice of Life",
+                "Smut", "Sports", "Supernatural", "Tragedy", "Wuxia", "Xianxia", "Xuanhuan", "Yaoi", "Yuri",
+            ),
+            0,
+        ) {
         fun toUriPart(): String {
             val genreNames = arrayOf(
                 "", "Action", "Adult", "Adventure", "Comedy", "Drama", "Ecchi",

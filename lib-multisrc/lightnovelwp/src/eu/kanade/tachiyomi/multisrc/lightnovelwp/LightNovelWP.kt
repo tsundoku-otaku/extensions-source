@@ -30,7 +30,8 @@ abstract class LightNovelWP(
     override val name: String,
     override val baseUrl: String,
     override val lang: String,
-) : ParsedHttpSource(), NovelSource {
+) : ParsedHttpSource(),
+    NovelSource {
 
     // isNovelSource is provided by NovelSource interface with default value true
 
@@ -130,10 +131,12 @@ abstract class LightNovelWP(
                     author = element.ownText().substringAfter(":").trim()
                         .ifEmpty { element.selectFirst("a")?.text()?.trim() }
                 }
+
                 text.contains("artist") -> {
                     artist = element.ownText().substringAfter(":").trim()
                         .ifEmpty { element.selectFirst("a")?.text()?.trim() }
                 }
+
                 text.contains("status") -> {
                     status = parseStatus(element.ownText().substringAfter(":").trim())
                 }
@@ -145,13 +148,17 @@ abstract class LightNovelWP(
         status.contains("Ongoing", ignoreCase = true) ||
             status.contains("en cours", ignoreCase = true) ||
             status.contains("em andamento", ignoreCase = true) -> SManga.ONGOING
+
         status.contains("Completed", ignoreCase = true) ||
             status.contains("complété", ignoreCase = true) ||
             status.contains("completo", ignoreCase = true) -> SManga.COMPLETED
+
         status.contains("Hiatus", ignoreCase = true) ||
             status.contains("en pause", ignoreCase = true) -> SManga.ON_HIATUS
+
         status.contains("Dropped", ignoreCase = true) ||
             status.contains("Cancelled", ignoreCase = true) -> SManga.CANCELLED
+
         else -> SManga.UNKNOWN
     }
 
@@ -212,12 +219,10 @@ abstract class LightNovelWP(
         return if (reverseChapters) chapters.reversed() else chapters
     }
 
-    private fun parseDate(dateStr: String): Long {
-        return try {
-            DATE_FORMAT.parse(dateStr)?.time ?: 0L
-        } catch (e: Exception) {
-            0L
-        }
+    private fun parseDate(dateStr: String): Long = try {
+        DATE_FORMAT.parse(dateStr)?.time ?: 0L
+    } catch (e: Exception) {
+        0L
     }
 
     override fun chapterListSelector() = throw UnsupportedOperationException()
@@ -257,17 +262,19 @@ abstract class LightNovelWP(
         StatusFilter(),
     )
 
-    protected class OrderFilter : Filter.Select<String>(
-        "Order by",
-        arrayOf("Popular", "Latest", "A-Z", "Rating"),
-        0,
-    )
+    protected class OrderFilter :
+        Filter.Select<String>(
+            "Order by",
+            arrayOf("Popular", "Latest", "A-Z", "Rating"),
+            0,
+        )
 
-    protected class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Completed", "Hiatus"),
-        0,
-    )
+    protected class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Completed", "Hiatus"),
+            0,
+        )
 
     companion object {
         private val DATE_FORMAT = SimpleDateFormat("MMMM dd, yyyy", Locale.US)

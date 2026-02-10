@@ -34,7 +34,10 @@ import uy.kohesive.injekt.injectLazy
  * Features: Advanced filters, JSON chapter API, rate limiting detection,
  *           tag caching with include/exclude advanced search
  */
-class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
+class NovelFire :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "NovelFire"
     override val baseUrl = "https://novelfire.net"
@@ -85,23 +88,21 @@ class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
      * Fetch all tags from the NovelFire AJAX endpoint and cache them.
      * Called lazily on first search that uses tags.
      */
-    private fun fetchAndCacheTags(): List<TagItem> {
-        return try {
-            val response = client.newCall(GET("$baseUrl/ajax/getTags?term=", headers)).execute()
-            val body = response.body.string()
-            val tagResponse = json.decodeFromString<TagResponse>(body)
-            val tags = tagResponse.data
-            if (tags.isNotEmpty()) {
-                preferences.edit()
-                    .putString(TAGS_CACHE_KEY, json.encodeToString(tags))
-                    .putLong(TAGS_CACHE_TIME_KEY, System.currentTimeMillis())
-                    .apply()
-                tagCache = tags
-            }
-            tags
-        } catch (e: Exception) {
-            emptyList()
+    private fun fetchAndCacheTags(): List<TagItem> = try {
+        val response = client.newCall(GET("$baseUrl/ajax/getTags?term=", headers)).execute()
+        val body = response.body.string()
+        val tagResponse = json.decodeFromString<TagResponse>(body)
+        val tags = tagResponse.data
+        if (tags.isNotEmpty()) {
+            preferences.edit()
+                .putString(TAGS_CACHE_KEY, json.encodeToString(tags))
+                .putLong(TAGS_CACHE_TIME_KEY, System.currentTimeMillis())
+                .apply()
+            tagCache = tags
         }
+        tags
+    } catch (e: Exception) {
+        emptyList()
     }
 
     /**
@@ -148,13 +149,9 @@ class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
         return searchMangaRequest(page, "", filters)
     }
 
-    override fun popularMangaParse(response: Response): MangasPage {
-        return searchMangaParse(response)
-    }
+    override fun popularMangaParse(response: Response): MangasPage = searchMangaParse(response)
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/search-adv?ctgcon=and&totalchapter=0&ratcon=min&rating=0&status=-1&sort=date&tagcon=and&page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/search-adv?ctgcon=and&totalchapter=0&ratcon=min&rating=0&status=-1&sort=date&tagcon=and&page=$page", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage {
         val doc = Jsoup.parse(response.body.string())
@@ -181,8 +178,11 @@ class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
         filters.forEach { filter ->
             when (filter) {
                 is SortFilter -> url.addQueryParameter("sort", filter.toUriPart())
+
                 is StatusFilter -> url.addQueryParameter("status", filter.toUriPart())
+
                 is GenreOperatorFilter -> url.addQueryParameter("ctgcon", filter.toUriPart())
+
                 is GenreFilter -> {
                     val selected = filter.state.filter { it.state }.map { it.value }
                     if (selected.isNotEmpty()) {
@@ -191,6 +191,7 @@ class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 is LanguageFilter -> {
                     val selected = filter.state.filter { it.state }.map { it.value }
                     if (selected.isNotEmpty()) {
@@ -199,10 +200,15 @@ class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 is RatingOperatorFilter -> url.addQueryParameter("ratcon", filter.toUriPart())
+
                 is RatingFilter -> url.addQueryParameter("rating", filter.toUriPart())
+
                 is ChaptersFilter -> url.addQueryParameter("totalchapter", filter.toUriPart())
+
                 is TagOperatorFilter -> tagOperator = filter.toUriPart()
+
                 is TagFilter -> {
                     // Tri-state tags: included = STATE_INCLUDE, excluded = STATE_EXCLUDE
                     val included = filter.state.filter { it.isIncluded() }.map { it.id }
@@ -218,6 +224,7 @@ class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
                         fetchAndCacheTags()
                     }
                 }
+
                 else -> {}
             }
         }
@@ -587,205 +594,202 @@ class NovelFire : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     // Filter Classes
-    private class SortFilter : Filter.Select<String>(
-        "Sort Results By",
-        arrayOf(
-            "Rank (Top)",
-            "Rating Score (Top)",
-            "Review Count (Most)",
-            "Comment Count (Most)",
-            "Bookmark Count (Most)",
-            "Today Views (Most)",
-            "Monthly Views (Most)",
-            "Total Views (Most)",
-            "Title (A>Z)",
-            "Title (Z>A)",
-            "Last Updated (Newest)",
-            "Chapter Count (Most)",
-        ),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "rank-top"
-                1 -> "rating-score-top"
-                2 -> "review"
-                3 -> "comment"
-                4 -> "bookmark"
-                5 -> "today-view"
-                6 -> "monthly-view"
-                7 -> "total-view"
-                8 -> "abc"
-                9 -> "cba"
-                10 -> "date"
-                11 -> "chapter-count-most"
-                else -> "rank-top"
-            }
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort Results By",
+            arrayOf(
+                "Rank (Top)",
+                "Rating Score (Top)",
+                "Review Count (Most)",
+                "Comment Count (Most)",
+                "Bookmark Count (Most)",
+                "Today Views (Most)",
+                "Monthly Views (Most)",
+                "Total Views (Most)",
+                "Title (A>Z)",
+                "Title (Z>A)",
+                "Last Updated (Newest)",
+                "Chapter Count (Most)",
+            ),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "rank-top"
+            1 -> "rating-score-top"
+            2 -> "review"
+            3 -> "comment"
+            4 -> "bookmark"
+            5 -> "today-view"
+            6 -> "monthly-view"
+            7 -> "total-view"
+            8 -> "abc"
+            9 -> "cba"
+            10 -> "date"
+            11 -> "chapter-count-most"
+            else -> "rank-top"
         }
     }
 
-    private class StatusFilter : Filter.Select<String>(
-        "Translation Status",
-        arrayOf("All", "Completed", "Ongoing"),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "-1"
-                1 -> "1"
-                2 -> "0"
-                else -> "-1"
-            }
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Translation Status",
+            arrayOf("All", "Completed", "Ongoing"),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "-1"
+            1 -> "1"
+            2 -> "0"
+            else -> "-1"
         }
     }
 
-    private class GenreOperatorFilter : Filter.Select<String>(
-        "Genres (And/Or/Exclude)",
-        arrayOf("AND", "OR", "EXCLUDE"),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "and"
-                1 -> "or"
-                2 -> "exclude"
-                else -> "and"
-            }
+    private class GenreOperatorFilter :
+        Filter.Select<String>(
+            "Genres (And/Or/Exclude)",
+            arrayOf("AND", "OR", "EXCLUDE"),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "and"
+            1 -> "or"
+            2 -> "exclude"
+            else -> "and"
         }
     }
 
-    private class GenreFilter : Filter.Group<GenreCheckBox>(
-        "Genres",
-        listOf(
-            GenreCheckBox("Action", "3"),
-            GenreCheckBox("Adult", "28"),
-            GenreCheckBox("Adventure", "4"),
-            GenreCheckBox("Anime", "46"),
-            GenreCheckBox("Arts", "47"),
-            GenreCheckBox("Comedy", "5"),
-            GenreCheckBox("Drama", "24"),
-            GenreCheckBox("Eastern", "44"),
-            GenreCheckBox("Ecchi", "26"),
-            GenreCheckBox("Fan-fiction", "48"),
-            GenreCheckBox("Fantasy", "6"),
-            GenreCheckBox("Game", "19"),
-            GenreCheckBox("Gender Bender", "25"),
-            GenreCheckBox("Harem", "7"),
-            GenreCheckBox("Historical", "12"),
-            GenreCheckBox("Horror", "37"),
-            GenreCheckBox("Isekai", "49"),
-            GenreCheckBox("Josei", "2"),
-            GenreCheckBox("Lgbt+", "45"),
-            GenreCheckBox("Magic", "50"),
-            GenreCheckBox("Magical Realism", "51"),
-            GenreCheckBox("Manhua", "52"),
-            GenreCheckBox("Martial Arts", "15"),
-            GenreCheckBox("Mature", "8"),
-            GenreCheckBox("Mecha", "34"),
-            GenreCheckBox("Military", "53"),
-            GenreCheckBox("Modern Life", "54"),
-            GenreCheckBox("Movies", "55"),
-            GenreCheckBox("Mystery", "16"),
-            GenreCheckBox("Other", "64"),
-            GenreCheckBox("Psychological", "9"),
-            GenreCheckBox("Realistic Fiction", "56"),
-            GenreCheckBox("Reincarnation", "43"),
-            GenreCheckBox("Romance", "1"),
-            GenreCheckBox("School Life", "21"),
-            GenreCheckBox("Sci-fi", "20"),
-            GenreCheckBox("Seinen", "10"),
-            GenreCheckBox("Shoujo", "38"),
-            GenreCheckBox("Shoujo Ai", "57"),
-            GenreCheckBox("Shounen", "17"),
-            GenreCheckBox("Shounen Ai", "39"),
-            GenreCheckBox("Slice of Life", "13"),
-            GenreCheckBox("Smut", "29"),
-            GenreCheckBox("Sports", "42"),
-            GenreCheckBox("Supernatural", "18"),
-            GenreCheckBox("System", "58"),
-            GenreCheckBox("Tragedy", "32"),
-            GenreCheckBox("Urban", "63"),
-            GenreCheckBox("Urban Life", "59"),
-            GenreCheckBox("Video Games", "60"),
-            GenreCheckBox("War", "61"),
-            GenreCheckBox("Wuxia", "31"),
-            GenreCheckBox("Xianxia", "23"),
-            GenreCheckBox("Xuanhuan", "22"),
-            GenreCheckBox("Yaoi", "14"),
-            GenreCheckBox("Yuri", "62"),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<GenreCheckBox>(
+            "Genres",
+            listOf(
+                GenreCheckBox("Action", "3"),
+                GenreCheckBox("Adult", "28"),
+                GenreCheckBox("Adventure", "4"),
+                GenreCheckBox("Anime", "46"),
+                GenreCheckBox("Arts", "47"),
+                GenreCheckBox("Comedy", "5"),
+                GenreCheckBox("Drama", "24"),
+                GenreCheckBox("Eastern", "44"),
+                GenreCheckBox("Ecchi", "26"),
+                GenreCheckBox("Fan-fiction", "48"),
+                GenreCheckBox("Fantasy", "6"),
+                GenreCheckBox("Game", "19"),
+                GenreCheckBox("Gender Bender", "25"),
+                GenreCheckBox("Harem", "7"),
+                GenreCheckBox("Historical", "12"),
+                GenreCheckBox("Horror", "37"),
+                GenreCheckBox("Isekai", "49"),
+                GenreCheckBox("Josei", "2"),
+                GenreCheckBox("Lgbt+", "45"),
+                GenreCheckBox("Magic", "50"),
+                GenreCheckBox("Magical Realism", "51"),
+                GenreCheckBox("Manhua", "52"),
+                GenreCheckBox("Martial Arts", "15"),
+                GenreCheckBox("Mature", "8"),
+                GenreCheckBox("Mecha", "34"),
+                GenreCheckBox("Military", "53"),
+                GenreCheckBox("Modern Life", "54"),
+                GenreCheckBox("Movies", "55"),
+                GenreCheckBox("Mystery", "16"),
+                GenreCheckBox("Other", "64"),
+                GenreCheckBox("Psychological", "9"),
+                GenreCheckBox("Realistic Fiction", "56"),
+                GenreCheckBox("Reincarnation", "43"),
+                GenreCheckBox("Romance", "1"),
+                GenreCheckBox("School Life", "21"),
+                GenreCheckBox("Sci-fi", "20"),
+                GenreCheckBox("Seinen", "10"),
+                GenreCheckBox("Shoujo", "38"),
+                GenreCheckBox("Shoujo Ai", "57"),
+                GenreCheckBox("Shounen", "17"),
+                GenreCheckBox("Shounen Ai", "39"),
+                GenreCheckBox("Slice of Life", "13"),
+                GenreCheckBox("Smut", "29"),
+                GenreCheckBox("Sports", "42"),
+                GenreCheckBox("Supernatural", "18"),
+                GenreCheckBox("System", "58"),
+                GenreCheckBox("Tragedy", "32"),
+                GenreCheckBox("Urban", "63"),
+                GenreCheckBox("Urban Life", "59"),
+                GenreCheckBox("Video Games", "60"),
+                GenreCheckBox("War", "61"),
+                GenreCheckBox("Wuxia", "31"),
+                GenreCheckBox("Xianxia", "23"),
+                GenreCheckBox("Xuanhuan", "22"),
+                GenreCheckBox("Yaoi", "14"),
+                GenreCheckBox("Yuri", "62"),
+            ),
+        )
     private class GenreCheckBox(name: String, val value: String) : Filter.CheckBox(name)
 
-    private class LanguageFilter : Filter.Group<LanguageCheckBox>(
-        "Language",
-        listOf(
-            LanguageCheckBox("Chinese", "1"),
-            LanguageCheckBox("Korean", "2"),
-            LanguageCheckBox("Japanese", "3"),
-            LanguageCheckBox("English", "4"),
-        ),
-    )
+    private class LanguageFilter :
+        Filter.Group<LanguageCheckBox>(
+            "Language",
+            listOf(
+                LanguageCheckBox("Chinese", "1"),
+                LanguageCheckBox("Korean", "2"),
+                LanguageCheckBox("Japanese", "3"),
+                LanguageCheckBox("English", "4"),
+            ),
+        )
     private class LanguageCheckBox(name: String, val value: String) : Filter.CheckBox(name)
 
-    private class RatingOperatorFilter : Filter.Select<String>(
-        "Rating (Min/Max)",
-        arrayOf("Min", "Max"),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "min"
-                1 -> "max"
-                else -> "min"
-            }
+    private class RatingOperatorFilter :
+        Filter.Select<String>(
+            "Rating (Min/Max)",
+            arrayOf("Min", "Max"),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "min"
+            1 -> "max"
+            else -> "min"
         }
     }
 
-    private class RatingFilter : Filter.Select<String>(
-        "Rating",
-        arrayOf("All", "1", "2", "3", "4", "5"),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "0"
-                1 -> "1"
-                2 -> "2"
-                3 -> "3"
-                4 -> "4"
-                5 -> "5"
-                else -> "0"
-            }
+    private class RatingFilter :
+        Filter.Select<String>(
+            "Rating",
+            arrayOf("All", "1", "2", "3", "4", "5"),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "0"
+            1 -> "1"
+            2 -> "2"
+            3 -> "3"
+            4 -> "4"
+            5 -> "5"
+            else -> "0"
         }
     }
 
-    private class ChaptersFilter : Filter.Select<String>(
-        "Chapters",
-        arrayOf(
-            "All",
-            "<50",
-            "50-100",
-            "100-200",
-            "200-500",
-            "500-1000",
-            ">1000",
-        ),
-    ) {
-        fun toUriPart(): String {
-            return when (state) {
-                0 -> "0"
-                1 -> "1,49"
-                2 -> "50,100"
-                3 -> "100,200"
-                4 -> "200,500"
-                5 -> "500,1000"
-                6 -> "1001,1000000"
-                else -> "0"
-            }
+    private class ChaptersFilter :
+        Filter.Select<String>(
+            "Chapters",
+            arrayOf(
+                "All",
+                "<50",
+                "50-100",
+                "100-200",
+                "200-500",
+                "500-1000",
+                ">1000",
+            ),
+        ) {
+        fun toUriPart(): String = when (state) {
+            0 -> "0"
+            1 -> "1,49"
+            2 -> "50,100"
+            3 -> "100,200"
+            4 -> "200,500"
+            5 -> "500,1000"
+            6 -> "1001,1000000"
+            else -> "0"
         }
     }
 
     // Tag filters for include/exclude advanced search (tri-state: include/exclude/ignore)
-    private class TagOperatorFilter : Filter.Select<String>(
-        "Tag Mode (for included tags)",
-        arrayOf("AND (match all)", "OR (match any)"),
-    ) {
+    private class TagOperatorFilter :
+        Filter.Select<String>(
+            "Tag Mode (for included tags)",
+            arrayOf("AND (match all)", "OR (match any)"),
+        ) {
         fun toUriPart(): String = if (state == 1) "or" else "and"
     }
 

@@ -32,7 +32,8 @@ abstract class ReadWN(
     override val name: String,
     override val baseUrl: String,
     override val lang: String,
-) : ParsedHttpSource(), NovelSource {
+) : ParsedHttpSource(),
+    NovelSource {
 
     override val isNovelSource = true
 
@@ -119,6 +120,7 @@ abstract class ReadWN(
                         genre = genreValues[filter.state].lowercase().replace(" ", "-")
                     }
                 }
+
                 is StatusFilter -> {
                     if (filter.state > 0) {
                         status = when (filter.state) {
@@ -128,14 +130,22 @@ abstract class ReadWN(
                         }
                     }
                 }
+
                 is SortFilter -> {
                     sort = when (filter.state) {
-                        0 -> "lastdotime" // Latest
-                        1 -> "newstime" // Popular (new)
-                        2 -> "allvisit" // Views
+                        0 -> "lastdotime"
+
+                        // Latest
+                        1 -> "newstime"
+
+                        // Popular (new)
+                        2 -> "allvisit"
+
+                        // Views
                         else -> "newstime"
                     }
                 }
+
                 else -> {}
             }
         }
@@ -249,9 +259,7 @@ abstract class ReadWN(
 
     // ======================== Pages ========================
 
-    override fun pageListParse(document: Document): List<Page> {
-        return listOf(Page(0, document.location()))
-    }
+    override fun pageListParse(document: Document): List<Page> = listOf(Page(0, document.location()))
 
     override fun imageUrlParse(document: Document): String = ""
 
@@ -296,17 +304,19 @@ abstract class ReadWN(
         }
     }
 
-    protected class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Completed"),
-        0,
-    )
+    protected class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Completed"),
+            0,
+        )
 
-    protected class SortFilter : Filter.Select<String>(
-        "Sort by",
-        arrayOf("Latest", "New", "Views"),
-        0,
-    )
+    protected class SortFilter :
+        Filter.Select<String>(
+            "Sort by",
+            arrayOf("Latest", "New", "Views"),
+            0,
+        )
 
     companion object {
         private val DATE_FORMAT = SimpleDateFormat("MMM dd, yyyy", Locale.US)

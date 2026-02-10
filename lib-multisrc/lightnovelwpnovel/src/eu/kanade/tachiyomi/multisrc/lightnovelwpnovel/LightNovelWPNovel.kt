@@ -22,7 +22,8 @@ open class LightNovelWPNovel(
     override val baseUrl: String,
     override val name: String,
     override val lang: String = "en",
-) : HttpSource(), NovelSource {
+) : HttpSource(),
+    NovelSource {
 
     override val isNovelSource = true
 
@@ -64,11 +65,13 @@ open class LightNovelWPNovel(
                         url += "&status=${filter.toUriPart()}"
                     }
                 }
+
                 is SortFilter -> {
                     if (filter.state != 0) {
                         url += "&order=${filter.toUriPart()}"
                     }
                 }
+
                 else -> {}
             }
         }
@@ -81,12 +84,10 @@ open class LightNovelWPNovel(
     /**
      * Helper function to extract image URL from element with various attribute fallbacks
      */
-    protected fun parseImageUrl(element: org.jsoup.nodes.Element?): String? {
-        return element?.attr("data-lazy-src")?.takeIf { it.isNotBlank() }
-            ?: element?.attr("data-src")?.takeIf { it.isNotBlank() }
-            ?: element?.attr("src")?.takeIf { it.isNotBlank() }
-            ?: element?.attr("data-lazy-srcset")?.takeIf { it.isNotBlank() }?.split(" ")?.firstOrNull()
-    }
+    protected fun parseImageUrl(element: org.jsoup.nodes.Element?): String? = element?.attr("data-lazy-src")?.takeIf { it.isNotBlank() }
+        ?: element?.attr("data-src")?.takeIf { it.isNotBlank() }
+        ?: element?.attr("src")?.takeIf { it.isNotBlank() }
+        ?: element?.attr("data-lazy-srcset")?.takeIf { it.isNotBlank() }?.split(" ")?.firstOrNull()
 
     protected fun parseNovels(doc: Document): List<SManga> {
         return doc.select("article").mapNotNull { element ->
@@ -103,10 +104,17 @@ open class LightNovelWPNovel(
                     // Ensure URL is relative path
                     this.url = when {
                         url.startsWith(baseUrl) -> url.removePrefix(baseUrl)
+
                         url.startsWith("http://") || url.startsWith("https://") -> {
-                            try { java.net.URI(url).path } catch (e: Exception) { url }
+                            try {
+                                java.net.URI(url).path
+                            } catch (e: Exception) {
+                                url
+                            }
                         }
+
                         url.startsWith("/") -> url
+
                         else -> "/$url"
                     }
                     thumbnail_url = cover
@@ -290,10 +298,11 @@ open class LightNovelWPNovel(
 
     protected fun Response.asJsoup(): Document = Jsoup.parse(body.string())
 
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("All", "Ongoing", "Completed", "Hiatus"),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("All", "Ongoing", "Completed", "Hiatus"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> ""
             1 -> "ongoing"
@@ -303,10 +312,11 @@ open class LightNovelWPNovel(
         }
     }
 
-    private class SortFilter : Filter.Select<String>(
-        "Sort",
-        arrayOf("Default", "A-Z", "Z-A", "Latest Update", "Latest Added", "Popular", "Rating"),
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort",
+            arrayOf("Default", "A-Z", "Z-A", "Latest Update", "Latest Added", "Popular", "Rating"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> ""
             1 -> "title"

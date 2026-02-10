@@ -1,32 +1,9 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlinx-serialization'
-
 ext {
     extName = 'NovelCool'
     extClass = '.NovelCool'
     extVersionCode = 1
     isNsfw = false
+        isNovel = true
 }
 
-android {
-    compileSdk AndroidConfig.compileSdk
-    namespace "eu.kanade.tachiyomi.extension.multisrc.novelcool"
-
-    defaultConfig {
-        minSdk AndroidConfig.minSdk
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8.toString()
-    }
-}
-
-dependencies {
-    implementation project(':core')
-}
+apply from: "$rootDir/common.gradle"

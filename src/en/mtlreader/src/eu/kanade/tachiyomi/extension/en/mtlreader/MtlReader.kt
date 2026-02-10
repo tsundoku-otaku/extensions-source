@@ -22,7 +22,10 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class MtlReader : HttpSource(), NovelSource, ConfigurableSource {
+class MtlReader :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "MTL Reader"
     override val baseUrl = "https://mtlreader.com"
@@ -43,9 +46,7 @@ class MtlReader : HttpSource(), NovelSource, ConfigurableSource {
     private var searchToken: String? = null
 
     // Popular novels
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/novels?sort=popular&page=$page", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/novels?sort=popular&page=$page", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val doc = Jsoup.parse(response.body.string())
@@ -53,9 +54,7 @@ class MtlReader : HttpSource(), NovelSource, ConfigurableSource {
     }
 
     // Latest updates
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/novels?sort=latest&page=$page", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/novels?sort=latest&page=$page", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -193,7 +192,7 @@ class MtlReader : HttpSource(), NovelSource, ConfigurableSource {
             // Check for next page
             val nextPageElement = currentDoc.selectFirst(
                 """
-                .page-item a[rel="next"], 
+                .page-item a[rel="next"],
                 .pagination-scrollbar a.page-link:contains(›)
                 """.trimIndent(),
             )
@@ -357,6 +356,7 @@ class MtlReader : HttpSource(), NovelSource, ConfigurableSource {
                         0L
                     }
                 }
+
                 else -> {
                     // Try to parse as date format
                     try {

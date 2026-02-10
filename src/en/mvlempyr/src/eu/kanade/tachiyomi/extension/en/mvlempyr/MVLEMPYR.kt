@@ -37,7 +37,10 @@ import java.math.BigInteger
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
+class MVLEMPYR :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "MVLEMPYR"
     override val baseUrl = "https://www.mvlempyr.io"
@@ -129,12 +132,10 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
         return GET("$chapSite/wp-json/wp/v2/mvl-novels?per_page=$perPage&page=$page&orderby=id&order=desc", headers)
     }
 
-    override fun popularMangaParse(response: Response): MangasPage {
-        return if (useLocalLoading) {
-            parseAndCacheAllNovels(response)
-        } else {
-            parseNovelsResponse(response)
-        }
+    override fun popularMangaParse(response: Response): MangasPage = if (useLocalLoading) {
+        parseAndCacheAllNovels(response)
+    } else {
+        parseNovelsResponse(response)
     }
 
     override fun latestUpdatesRequest(page: Int): Request {
@@ -144,12 +145,10 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
         return GET("$chapSite/wp-json/wp/v2/mvl-novels?per_page=$perPage&page=$page&orderby=date&order=desc", headers)
     }
 
-    override fun latestUpdatesParse(response: Response): MangasPage {
-        return if (useLocalLoading) {
-            parseAndCacheAllNovels(response, sortBy = "created")
-        } else {
-            parseNovelsResponse(response)
-        }
+    override fun latestUpdatesParse(response: Response): MangasPage = if (useLocalLoading) {
+        parseAndCacheAllNovels(response, sortBy = "created")
+    } else {
+        parseNovelsResponse(response)
     }
 
     override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
@@ -173,14 +172,23 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
             when (filter) {
                 is SortFilter -> {
                     when (filter.state) {
-                        0 -> {} // None - no orderby parameter
-                        1 -> url.addQueryParameter("orderby", "date") // Latest Added
-                        2 -> url.addQueryParameter("orderby", "title") // A-Z
-                        3 -> url.addQueryParameter("orderby", "modified") // Last Modified
+                        0 -> {}
+
+                        // None - no orderby parameter
+                        1 -> url.addQueryParameter("orderby", "date")
+
+                        // Latest Added
+                        2 -> url.addQueryParameter("orderby", "title")
+
+                        // A-Z
+                        3 -> url.addQueryParameter("orderby", "modified")
+
+                        // Last Modified
                         4 -> url.addQueryParameter("orderby", "relevance") // Relevance
                     }
                     if (filter.state > 0) url.addQueryParameter("order", "desc")
                 }
+
                 is GenreFilter -> {
                     val includedGenres = filter.state.filter { it.isIncluded() }.map { it.id }
                     val excludedGenres = filter.state.filter { it.isExcluded() }.map { it.id }
@@ -196,6 +204,7 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 is TagFilter -> {
                     val includedTags = filter.state.filter { it.isIncluded() }.map { it.id }
                     val excludedTags = filter.state.filter { it.isExcluded() }.map { it.id }
@@ -211,6 +220,7 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
                         }
                     }
                 }
+
                 else -> {}
             }
         }
@@ -218,12 +228,10 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
         return GET(url.build(), headers)
     }
 
-    override fun searchMangaParse(response: Response): MangasPage {
-        return if (useLocalLoading) {
-            parseAndCacheAllNovels(response)
-        } else {
-            parseNovelsResponse(response)
-        }
+    override fun searchMangaParse(response: Response): MangasPage = if (useLocalLoading) {
+        parseAndCacheAllNovels(response)
+    } else {
+        parseNovelsResponse(response)
     }
 
     private fun parseNovelsResponse(response: Response): MangasPage {
@@ -464,32 +472,35 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
     )
 
     // WordPress REST API valid orderby values: author, date, id, include, modified, parent, relevance, slug, include_slugs, title
-    private class SortFilter : Filter.Select<String>(
-        "Sort by",
-        arrayOf("None", "Latest Added", "A-Z", "Last Modified", "Relevance"),
-    )
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort by",
+            arrayOf("None", "Latest Added", "A-Z", "Last Modified", "Relevance"),
+        )
 
-    private class GenreFilter : Filter.Group<GenreTriState>(
-        "Genres",
-        listOf(
-            GenreTriState("Action", 1), GenreTriState("Adult", 2), GenreTriState("Adventure", 3), GenreTriState("Comedy", 4), GenreTriState("Drama", 5), GenreTriState("Ecchi", 6), GenreTriState("Fan-Fiction", 7), GenreTriState("Fantasy", 8), GenreTriState("Gender Bender", 9), GenreTriState("Harem", 10), GenreTriState("Historical", 11), GenreTriState("Horror", 12),
-            GenreTriState("Josei", 13), GenreTriState("Martial Arts", 14), GenreTriState("Mature", 15), GenreTriState("Mecha", 16), GenreTriState("Mystery", 17), GenreTriState("Psychological", 18), GenreTriState("Romance", 19), GenreTriState("School Life", 20), GenreTriState("Sci-fi", 21), GenreTriState("Seinen", 22), GenreTriState("Shoujo", 23), GenreTriState("Shoujo Ai", 24),
-            GenreTriState("Shounen", 25), GenreTriState("Shounen Ai", 26), GenreTriState("Slice of Life", 27), GenreTriState("Smut", 28), GenreTriState("Sports", 29), GenreTriState("Supernatural", 30), GenreTriState("Tragedy", 31), GenreTriState("Wuxia", 32), GenreTriState("Xianxia", 33), GenreTriState("Xuanhuan", 34), GenreTriState("Yaoi", 35), GenreTriState("Yuri", 36),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<GenreTriState>(
+            "Genres",
+            listOf(
+                GenreTriState("Action", 1), GenreTriState("Adult", 2), GenreTriState("Adventure", 3), GenreTriState("Comedy", 4), GenreTriState("Drama", 5), GenreTriState("Ecchi", 6), GenreTriState("Fan-Fiction", 7), GenreTriState("Fantasy", 8), GenreTriState("Gender Bender", 9), GenreTriState("Harem", 10), GenreTriState("Historical", 11), GenreTriState("Horror", 12),
+                GenreTriState("Josei", 13), GenreTriState("Martial Arts", 14), GenreTriState("Mature", 15), GenreTriState("Mecha", 16), GenreTriState("Mystery", 17), GenreTriState("Psychological", 18), GenreTriState("Romance", 19), GenreTriState("School Life", 20), GenreTriState("Sci-fi", 21), GenreTriState("Seinen", 22), GenreTriState("Shoujo", 23), GenreTriState("Shoujo Ai", 24),
+                GenreTriState("Shounen", 25), GenreTriState("Shounen Ai", 26), GenreTriState("Slice of Life", 27), GenreTriState("Smut", 28), GenreTriState("Sports", 29), GenreTriState("Supernatural", 30), GenreTriState("Tragedy", 31), GenreTriState("Wuxia", 32), GenreTriState("Xianxia", 33), GenreTriState("Xuanhuan", 34), GenreTriState("Yaoi", 35), GenreTriState("Yuri", 36),
+            ),
+        )
 
     private class GenreTriState(name: String, val id: Int) : Filter.TriState(name)
 
-    private class TagFilter : Filter.Group<TagTriState>(
-        "Tags",
-        listOf(
-            TagTriState("Academy", 100), TagTriState("Antihero Protagonist", 101), TagTriState("Beast Companions", 102), TagTriState("Calm Protagonist", 103), TagTriState("Cheats", 104), TagTriState("Clever Protagonist", 105),
-            TagTriState("Cold Protagonist", 106), TagTriState("Cultivation", 107), TagTriState("Cunning Protagonist", 108), TagTriState("Dark", 109), TagTriState("Demons", 110), TagTriState("Dragons", 111), TagTriState("Dungeons", 112),
-            TagTriState("Fantasy World", 113), TagTriState("Female Protagonist", 114), TagTriState("Game Elements", 115), TagTriState("Gods", 116), TagTriState("Hidden Abilities", 117), TagTriState("Level System", 118),
-            TagTriState("Magic", 119), TagTriState("Male Protagonist", 120), TagTriState("Monsters", 121), TagTriState("Nobles", 122), TagTriState("Overpowered Protagonist", 123), TagTriState("Reincarnation", 124),
-            TagTriState("Revenge", 125), TagTriState("Royalty", 126), TagTriState("Second Chance", 127), TagTriState("System", 128), TagTriState("Transmigration", 129), TagTriState("Weak to Strong", 130),
-        ),
-    )
+    private class TagFilter :
+        Filter.Group<TagTriState>(
+            "Tags",
+            listOf(
+                TagTriState("Academy", 100), TagTriState("Antihero Protagonist", 101), TagTriState("Beast Companions", 102), TagTriState("Calm Protagonist", 103), TagTriState("Cheats", 104), TagTriState("Clever Protagonist", 105),
+                TagTriState("Cold Protagonist", 106), TagTriState("Cultivation", 107), TagTriState("Cunning Protagonist", 108), TagTriState("Dark", 109), TagTriState("Demons", 110), TagTriState("Dragons", 111), TagTriState("Dungeons", 112),
+                TagTriState("Fantasy World", 113), TagTriState("Female Protagonist", 114), TagTriState("Game Elements", 115), TagTriState("Gods", 116), TagTriState("Hidden Abilities", 117), TagTriState("Level System", 118),
+                TagTriState("Magic", 119), TagTriState("Male Protagonist", 120), TagTriState("Monsters", 121), TagTriState("Nobles", 122), TagTriState("Overpowered Protagonist", 123), TagTriState("Reincarnation", 124),
+                TagTriState("Revenge", 125), TagTriState("Royalty", 126), TagTriState("Second Chance", 127), TagTriState("System", 128), TagTriState("Transmigration", 129), TagTriState("Weak to Strong", 130),
+            ),
+        )
 
     private class TagTriState(name: String, val id: Int) : Filter.TriState(name)
 
@@ -530,9 +541,7 @@ class MVLEMPYR : HttpSource(), NovelSource, ConfigurableSource {
         }
     }
 
-    private fun cleanHtml(html: String): String {
-        return Jsoup.parse(html).text()
-    }
+    private fun cleanHtml(html: String): String = Jsoup.parse(html).text()
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
         SwitchPreferenceCompat(screen.context).apply {

@@ -13,20 +13,19 @@ import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
-class LibRead : ReadNovelFull(
-    name = "LibRead",
-    baseUrl = "https://libread.com",
-    lang = "en",
-) {
+class LibRead :
+    ReadNovelFull(
+        name = "LibRead",
+        baseUrl = "https://libread.com",
+        lang = "en",
+    ) {
     override val latestPage = "sort/latest-release"
 
     // LibRead uses /sort/ prefix
-    override fun popularMangaRequest(page: Int): Request {
-        return okhttp3.Request.Builder()
-            .url("$baseUrl/sort/most-popular?page=$page")
-            .headers(headers)
-            .build()
-    }
+    override fun popularMangaRequest(page: Int): Request = okhttp3.Request.Builder()
+        .url("$baseUrl/sort/most-popular?page=$page")
+        .headers(headers)
+        .build()
 
     override fun popularMangaSelector() = "div.ul-list1 div.li, ul.ul-list2 li"
 
@@ -56,12 +55,10 @@ class LibRead : ReadNovelFull(
         return MangasPage(mangas, hasNextPage)
     }
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return okhttp3.Request.Builder()
-            .url("$baseUrl/$latestPage?page=$page")
-            .headers(headers)
-            .build()
-    }
+    override fun latestUpdatesRequest(page: Int): Request = okhttp3.Request.Builder()
+        .url("$baseUrl/$latestPage?page=$page")
+        .headers(headers)
+        .build()
 
     override fun latestUpdatesSelector() = "div.ul-list1 div.li, ul.ul-list2 li"
 
@@ -112,32 +109,41 @@ class LibRead : ReadNovelFull(
         GenreFilter(),
     )
 
-    private class TypeFilter : Filter.Select<String>(
-        "Novel Type",
-        arrayOf("Most Popular", "Latest Release", "Chinese Novel", "Korean Novel", "Japanese Novel", "English Novel"),
-    ) {
+    private class TypeFilter :
+        Filter.Select<String>(
+            "Novel Type",
+            arrayOf("Most Popular", "Latest Release", "Chinese Novel", "Korean Novel", "Japanese Novel", "English Novel"),
+        ) {
         fun getSelectedType(): String? = when (state) {
-            0 -> null // default, use popular request
+            0 -> null
+
+            // default, use popular request
             1 -> "sort/latest-release"
+
             2 -> "sort/latest-release/chinese-novel"
+
             3 -> "sort/latest-release/korean-novel"
+
             4 -> "sort/latest-release/japanese-novel"
+
             5 -> "sort/latest-release/english-novel"
+
             else -> null
         }
     }
 
-    private class GenreFilter : Filter.Select<String>(
-        "Genre",
-        arrayOf(
-            "All", "Action", "Adult", "Adventure", "Comedy", "Drama", "Eastern",
-            "Ecchi", "Fantasy", "Game", "Gender Bender", "Harem", "Historical",
-            "Horror", "Josei", "Martial Arts", "Mature", "Mecha", "Mystery",
-            "Psychological", "Reincarnation", "Romance", "School Life", "Sci-fi",
-            "Seinen", "Shoujo", "Shounen Ai", "Shounen", "Slice of Life", "Smut",
-            "Sports", "Supernatural", "Tragedy", "Wuxia", "Xianxia", "Xuanhuan", "Yaoi",
-        ),
-    ) {
+    private class GenreFilter :
+        Filter.Select<String>(
+            "Genre",
+            arrayOf(
+                "All", "Action", "Adult", "Adventure", "Comedy", "Drama", "Eastern",
+                "Ecchi", "Fantasy", "Game", "Gender Bender", "Harem", "Historical",
+                "Horror", "Josei", "Martial Arts", "Mature", "Mecha", "Mystery",
+                "Psychological", "Reincarnation", "Romance", "School Life", "Sci-fi",
+                "Seinen", "Shoujo", "Shounen Ai", "Shounen", "Slice of Life", "Smut",
+                "Sports", "Supernatural", "Tragedy", "Wuxia", "Xianxia", "Xuanhuan", "Yaoi",
+            ),
+        ) {
         fun getSelectedGenre(): String? {
             if (state == 0) return null
             val values = arrayOf(
@@ -174,10 +180,12 @@ class LibRead : ReadNovelFull(
                 "author", "authors" -> {
                     author = value?.text()?.trim() ?: element.select("a").joinToString(", ") { it.text().trim() }
                 }
+
                 "genre", "genres" -> {
                     genre = element.select("a").joinToString(", ") { it.text().trim() }
                         .ifEmpty { value?.text()?.trim() }
                 }
+
                 "status" -> {
                     val statusText = value?.text()?.trim() ?: ""
                     status = when {

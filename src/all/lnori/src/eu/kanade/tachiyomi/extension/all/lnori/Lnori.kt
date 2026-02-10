@@ -17,7 +17,9 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import uy.kohesive.injekt.injectLazy
 
-class Lnori : HttpSource(), NovelSource {
+class Lnori :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Lnori"
     override val baseUrl = "https://lnori.qzz.io"
@@ -114,24 +116,20 @@ class Lnori : HttpSource(), NovelSource {
         )
     }
 
-    private fun novelDataToSManga(novel: NovelData): SManga {
-        return SManga.create().apply {
-            url = novel.url.let { if (it.startsWith("/")) it else "/$it" }
-            title = novel.title.split(" ").joinToString(" ") {
-                it.replaceFirstChar { c -> c.uppercaseChar() }
-            }
-            thumbnail_url = novel.coverUrl
-            author = novel.author
-            genre = novel.tags.joinToString(", ")
-            description = novel.description
+    private fun novelDataToSManga(novel: NovelData): SManga = SManga.create().apply {
+        url = novel.url.let { if (it.startsWith("/")) it else "/$it" }
+        title = novel.title.split(" ").joinToString(" ") {
+            it.replaceFirstChar { c -> c.uppercaseChar() }
         }
+        thumbnail_url = novel.coverUrl
+        author = novel.author
+        genre = novel.tags.joinToString(", ")
+        description = novel.description
     }
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET(baseUrl, headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET(baseUrl, headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val novels = loadAllNovels()
@@ -155,81 +153,91 @@ class Lnori : HttpSource(), NovelSource {
 
     // ======================== Search ========================
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
-        return GET(baseUrl, headers)
-    }
+    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request = GET(baseUrl, headers)
 
     override fun searchMangaParse(response: Response): MangasPage {
         // This will be overridden by fetchSearchManga
         return MangasPage(emptyList(), false)
     }
 
-    override fun fetchSearchManga(page: Int, query: String, filters: FilterList): rx.Observable<MangasPage> {
-        return rx.Observable.fromCallable {
-            var novels = loadAllNovels()
+    override fun fetchSearchManga(page: Int, query: String, filters: FilterList): rx.Observable<MangasPage> = rx.Observable.fromCallable {
+        var novels = loadAllNovels()
 
-            // Apply search query
-            if (query.isNotBlank()) {
-                val queryLower = query.lowercase()
-                novels = novels.filter { novel ->
-                    novel.title.contains(queryLower) ||
-                        novel.author.lowercase().contains(queryLower) ||
-                        novel.description.lowercase().contains(queryLower)
-                }
+        // Apply search query
+        if (query.isNotBlank()) {
+            val queryLower = query.lowercase()
+            novels = novels.filter { novel ->
+                novel.title.contains(queryLower) ||
+                    novel.author.lowercase().contains(queryLower) ||
+                    novel.description.lowercase().contains(queryLower)
             }
-
-            // Apply filters
-            filters.forEach { filter ->
-                when (filter) {
-                    is TagFilter -> {
-                        if (filter.state.isNotBlank()) {
-                            val tags = filter.state.split(",")
-                                .map { it.trim().lowercase() }
-                                .filter { it.isNotEmpty() }
-
-                            novels = novels.filter { novel ->
-                                val novelTags = novel.tags.map { it.lowercase() }
-                                tags.all { tag -> novelTags.any { it.contains(tag) } }
-                            }
-                        }
-                    }
-                    is AuthorFilter -> {
-                        if (filter.state.isNotBlank()) {
-                            val authorQuery = filter.state.lowercase()
-                            novels = novels.filter { it.author.lowercase().contains(authorQuery) }
-                        }
-                    }
-                    is MinVolumesFilter -> {
-                        if (filter.state.isNotBlank()) {
-                            val minVols = filter.state.toIntOrNull() ?: 0
-                            novels = novels.filter { it.volumes >= minVols }
-                        }
-                    }
-                    is SortFilter -> {
-                        novels = when (filter.state) {
-                            0 -> novels.sortedByDescending { it.rel } // Popularity
-                            1 -> novels.sortedByDescending { it.date } // Newest
-                            2 -> novels.sortedBy { it.date } // Oldest
-                            3 -> novels.sortedBy { it.title } // A-Z
-                            4 -> novels.sortedByDescending { it.title } // Z-A
-                            5 -> novels.sortedByDescending { it.volumes } // Most volumes
-                            else -> novels
-                        }
-                    }
-                    else -> {}
-                }
-            }
-
-            val mangas = novels.map { novelDataToSManga(it) }
-            MangasPage(mangas, false)
         }
+
+        // Apply filters
+        filters.forEach { filter ->
+            when (filter) {
+                is TagFilter -> {
+                    if (filter.state.isNotBlank()) {
+                        val tags = filter.state.split(",")
+                            .map { it.trim().lowercase() }
+                            .filter { it.isNotEmpty() }
+
+                        novels = novels.filter { novel ->
+                            val novelTags = novel.tags.map { it.lowercase() }
+                            tags.all { tag -> novelTags.any { it.contains(tag) } }
+                        }
+                    }
+                }
+
+                is AuthorFilter -> {
+                    if (filter.state.isNotBlank()) {
+                        val authorQuery = filter.state.lowercase()
+                        novels = novels.filter { it.author.lowercase().contains(authorQuery) }
+                    }
+                }
+
+                is MinVolumesFilter -> {
+                    if (filter.state.isNotBlank()) {
+                        val minVols = filter.state.toIntOrNull() ?: 0
+                        novels = novels.filter { it.volumes >= minVols }
+                    }
+                }
+
+                is SortFilter -> {
+                    novels = when (filter.state) {
+                        0 -> novels.sortedByDescending { it.rel }
+
+                        // Popularity
+                        1 -> novels.sortedByDescending { it.date }
+
+                        // Newest
+                        2 -> novels.sortedBy { it.date }
+
+                        // Oldest
+                        3 -> novels.sortedBy { it.title }
+
+                        // A-Z
+                        4 -> novels.sortedByDescending { it.title }
+
+                        // Z-A
+                        5 -> novels.sortedByDescending { it.volumes }
+
+                        // Most volumes
+                        else -> novels
+                    }
+                }
+
+                else -> {}
+            }
+        }
+
+        val mangas = novels.map { novelDataToSManga(it) }
+        MangasPage(mangas, false)
     }
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = Jsoup.parse(response.body.string())
@@ -273,9 +281,7 @@ class Lnori : HttpSource(), NovelSource {
 
     // ======================== Chapters (Volumes) ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = Jsoup.parse(response.body.string())
@@ -328,9 +334,7 @@ class Lnori : HttpSource(), NovelSource {
         return GET(url, headers)
     }
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -432,16 +436,14 @@ class Lnori : HttpSource(), NovelSource {
 
     // ======================== Filters ========================
 
-    override fun getFilterList(): FilterList {
-        return FilterList(
-            Filter.Header("Local filters - data loaded from homepage"),
-            Filter.Separator(),
-            TagFilter("Tags (comma separated)"),
-            AuthorFilter("Author"),
-            MinVolumesFilter("Minimum Volumes"),
-            SortFilter("Sort By", sortOptions),
-        )
-    }
+    override fun getFilterList(): FilterList = FilterList(
+        Filter.Header("Local filters - data loaded from homepage"),
+        Filter.Separator(),
+        TagFilter("Tags (comma separated)"),
+        AuthorFilter("Author"),
+        MinVolumesFilter("Minimum Volumes"),
+        SortFilter("Sort By", sortOptions),
+    )
 
     class TagFilter(name: String) : Filter.Text(name)
     class AuthorFilter(name: String) : Filter.Text(name)

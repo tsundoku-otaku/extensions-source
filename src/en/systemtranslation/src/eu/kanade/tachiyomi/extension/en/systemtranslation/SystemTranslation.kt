@@ -8,11 +8,12 @@ import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.Jsoup
 
-class SystemTranslation : LightNovelWPNovel(
-    baseUrl = "https://systemtranslation.com",
-    name = "System Translation",
-    lang = "en",
-) {
+class SystemTranslation :
+    LightNovelWPNovel(
+        baseUrl = "https://systemtranslation.com",
+        name = "System Translation",
+        lang = "en",
+    ) {
     override fun headersBuilder() = super.headersBuilder()
         .add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .add("Referer", baseUrl)
@@ -46,10 +47,17 @@ class SystemTranslation : LightNovelWPNovel(
                     this.title = title.trim()
                     this.url = when {
                         url.startsWith(baseUrl) -> url.removePrefix(baseUrl)
+
                         url.startsWith("http://") || url.startsWith("https://") -> {
-                            try { java.net.URI(url).path } catch (e: Exception) { url }
+                            try {
+                                java.net.URI(url).path
+                            } catch (e: Exception) {
+                                url
+                            }
                         }
+
                         url.startsWith("/") -> url
+
                         else -> "/$url"
                     }
                     thumbnail_url = cover

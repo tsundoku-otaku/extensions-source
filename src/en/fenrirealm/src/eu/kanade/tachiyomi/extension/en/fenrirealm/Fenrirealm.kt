@@ -21,7 +21,9 @@ import uy.kohesive.injekt.injectLazy
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class Fenrirealm : HttpSource(), NovelSource {
+class Fenrirealm :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Fenrirealm"
     override val baseUrl = "https://fenrirealm.com"
@@ -38,9 +40,7 @@ class Fenrirealm : HttpSource(), NovelSource {
     private val apiBaseUrl = "$baseUrl/api/new/v2"
 
     // Popular novels - GET /api/new/v2/home/popular-series
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$apiBaseUrl/home/popular-series", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$apiBaseUrl/home/popular-series", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val novels = json.decodeFromString<List<NovelDto>>(response.body.string())
@@ -48,9 +48,7 @@ class Fenrirealm : HttpSource(), NovelSource {
     }
 
     // Latest updates - GET /api/new/v2/series?page=1&per_page=12&status=any&sort=latest
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$apiBaseUrl/series?page=$page&per_page=20&status=any&sort=latest", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$apiBaseUrl/series?page=$page&per_page=20&status=any&sort=latest", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage {
         val result = json.decodeFromString<SearchResponse>(response.body.string())
@@ -70,13 +68,16 @@ class Fenrirealm : HttpSource(), NovelSource {
             filters.forEach { filter ->
                 when (filter) {
                     is StatusFilter -> addQueryParameter("status", filter.toUriPart())
+
                     is SortFilter -> addQueryParameter("sort", filter.toUriPart())
+
                     is TypeFilter -> {
                         val type = filter.toUriPart()
                         if (type.isNotEmpty()) {
                             addQueryParameter("type", type)
                         }
                     }
+
                     is GenreFilter -> {
                         filter.state.filter { it.isIncluded() }.forEach { genre ->
                             addQueryParameter("genres[]", genre.id.toString())
@@ -85,6 +86,7 @@ class Fenrirealm : HttpSource(), NovelSource {
                             addQueryParameter("exclude_genres[]", genre.id.toString())
                         }
                     }
+
                     is TagFilter -> {
                         filter.state.filter { it.isIncluded() }.forEach { tag ->
                             addQueryParameter("tags[]", tag.id.toString())
@@ -93,6 +95,7 @@ class Fenrirealm : HttpSource(), NovelSource {
                             addQueryParameter("exclude_tags[]", tag.id.toString())
                         }
                     }
+
                     else -> {}
                 }
             }
@@ -229,7 +232,8 @@ class Fenrirealm : HttpSource(), NovelSource {
                 null
             }
             this.description = buildString {
-                this@NovelDto.description?.let { // Sanitize HTML from description
+                this@NovelDto.description?.let {
+                    // Sanitize HTML from description
                     val cleanDesc = Jsoup.parse(it).text()
                     append(cleanDesc)
                 }
@@ -304,10 +308,11 @@ class Fenrirealm : HttpSource(), NovelSource {
     )
 
     // Filter classes
-    private class StatusFilter : Filter.Select<String>(
-        "Status",
-        arrayOf("Any", "Ongoing", "Completed"),
-    ) {
+    private class StatusFilter :
+        Filter.Select<String>(
+            "Status",
+            arrayOf("Any", "Ongoing", "Completed"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "any"
             1 -> "on-going"
@@ -316,10 +321,11 @@ class Fenrirealm : HttpSource(), NovelSource {
         }
     }
 
-    private class SortFilter : Filter.Select<String>(
-        "Sort",
-        arrayOf("Latest", "Popular"),
-    ) {
+    private class SortFilter :
+        Filter.Select<String>(
+            "Sort",
+            arrayOf("Latest", "Popular"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> "latest"
             1 -> "popular"
@@ -327,10 +333,11 @@ class Fenrirealm : HttpSource(), NovelSource {
         }
     }
 
-    private class TypeFilter : Filter.Select<String>(
-        "Type",
-        arrayOf("All", "Light Novel", "Web Novel", "Novel", "Original Novel"),
-    ) {
+    private class TypeFilter :
+        Filter.Select<String>(
+            "Type",
+            arrayOf("All", "Light Novel", "Web Novel", "Novel", "Original Novel"),
+        ) {
         fun toUriPart() = when (state) {
             0 -> ""
             1 -> "light_novel"
@@ -343,81 +350,83 @@ class Fenrirealm : HttpSource(), NovelSource {
 
     private class GenreCheckBox(val id: Int, name: String) : Filter.TriState(name)
 
-    private class GenreFilter : Filter.Group<GenreCheckBox>(
-        "Genres",
-        listOf(
-            GenreCheckBox(1, "Action"),
-            GenreCheckBox(2, "Adult"),
-            GenreCheckBox(3, "Adventure"),
-            GenreCheckBox(4, "Comedy"),
-            GenreCheckBox(5, "Drama"),
-            GenreCheckBox(6, "Ecchi"),
-            GenreCheckBox(7, "Fantasy"),
-            GenreCheckBox(8, "Gender Bender"),
-            GenreCheckBox(9, "Harem"),
-            GenreCheckBox(10, "Historical"),
-            GenreCheckBox(11, "Horror"),
-            GenreCheckBox(12, "Josei"),
-            GenreCheckBox(13, "Martial Arts"),
-            GenreCheckBox(14, "Mature"),
-            GenreCheckBox(15, "Mecha"),
-            GenreCheckBox(16, "Mystery"),
-            GenreCheckBox(17, "Psychological"),
-            GenreCheckBox(18, "Romance"),
-            GenreCheckBox(19, "School Life"),
-            GenreCheckBox(20, "Sci-fi"),
-            GenreCheckBox(21, "Seinen"),
-            GenreCheckBox(22, "Shoujo"),
-            GenreCheckBox(23, "Shoujo Ai"),
-            GenreCheckBox(24, "Shounen"),
-            GenreCheckBox(25, "Shounen Ai"),
-            GenreCheckBox(26, "Slice of Life"),
-            GenreCheckBox(27, "Smut"),
-            GenreCheckBox(28, "Sports"),
-            GenreCheckBox(29, "Supernatural"),
-            GenreCheckBox(30, "Tragedy"),
-            GenreCheckBox(31, "Wuxia"),
-            GenreCheckBox(32, "Xianxia"),
-            GenreCheckBox(33, "Xuanhuan"),
-            GenreCheckBox(34, "Yaoi"),
-            GenreCheckBox(35, "Yuri"),
-        ),
-    )
+    private class GenreFilter :
+        Filter.Group<GenreCheckBox>(
+            "Genres",
+            listOf(
+                GenreCheckBox(1, "Action"),
+                GenreCheckBox(2, "Adult"),
+                GenreCheckBox(3, "Adventure"),
+                GenreCheckBox(4, "Comedy"),
+                GenreCheckBox(5, "Drama"),
+                GenreCheckBox(6, "Ecchi"),
+                GenreCheckBox(7, "Fantasy"),
+                GenreCheckBox(8, "Gender Bender"),
+                GenreCheckBox(9, "Harem"),
+                GenreCheckBox(10, "Historical"),
+                GenreCheckBox(11, "Horror"),
+                GenreCheckBox(12, "Josei"),
+                GenreCheckBox(13, "Martial Arts"),
+                GenreCheckBox(14, "Mature"),
+                GenreCheckBox(15, "Mecha"),
+                GenreCheckBox(16, "Mystery"),
+                GenreCheckBox(17, "Psychological"),
+                GenreCheckBox(18, "Romance"),
+                GenreCheckBox(19, "School Life"),
+                GenreCheckBox(20, "Sci-fi"),
+                GenreCheckBox(21, "Seinen"),
+                GenreCheckBox(22, "Shoujo"),
+                GenreCheckBox(23, "Shoujo Ai"),
+                GenreCheckBox(24, "Shounen"),
+                GenreCheckBox(25, "Shounen Ai"),
+                GenreCheckBox(26, "Slice of Life"),
+                GenreCheckBox(27, "Smut"),
+                GenreCheckBox(28, "Sports"),
+                GenreCheckBox(29, "Supernatural"),
+                GenreCheckBox(30, "Tragedy"),
+                GenreCheckBox(31, "Wuxia"),
+                GenreCheckBox(32, "Xianxia"),
+                GenreCheckBox(33, "Xuanhuan"),
+                GenreCheckBox(34, "Yaoi"),
+                GenreCheckBox(35, "Yuri"),
+            ),
+        )
 
     private class TagCheckBox(val id: Int, name: String) : Filter.TriState(name)
 
-    private class TagFilter : Filter.Group<TagCheckBox>(
-        "Tags",
-        listOf(
-            TagCheckBox(5, "Academy"),
-            TagCheckBox(22, "Adventurers"),
-            TagCheckBox(47, "Apocalypse"),
-            TagCheckBox(75, "Battle Academy"),
-            TagCheckBox(111, "Calm Protagonist"),
-            TagCheckBox(118, "Character Growth"),
-            TagCheckBox(122, "Cheats"),
-            TagCheckBox(169, "Cultivation"),
-            TagCheckBox(191, "Demons"),
-            TagCheckBox(215, "Dragons"),
-            TagCheckBox(265, "Fantasy World"),
-            TagCheckBox(298, "Game Elements"),
-            TagCheckBox(307, "Genius Protagonist"),
-            TagCheckBox(317, "Gods"),
-            TagCheckBox(324, "Guilds"),
-            TagCheckBox(341, "Heroes"),
-            TagCheckBox(392, "Level System"),
-            TagCheckBox(413, "Magic"),
-            TagCheckBox(420, "Male Protagonist"),
-            TagCheckBox(456, "Monsters"),
-            TagCheckBox(510, "Overpowered Protagonist"),
-            TagCheckBox(582, "Reincarnation"),
-            TagCheckBox(610, "Second Chance"),
-            TagCheckBox(671, "Special Abilities"),
-            TagCheckBox(696, "Survival"),
-            TagCheckBox(699, "Sword Wielder"),
-            TagCheckBox(725, "Transported to Another World"),
-            TagCheckBox(746, "Virtual Reality"),
-            TagCheckBox(754, "Weak to Strong"),
-        ),
-    )
+    private class TagFilter :
+        Filter.Group<TagCheckBox>(
+            "Tags",
+            listOf(
+                TagCheckBox(5, "Academy"),
+                TagCheckBox(22, "Adventurers"),
+                TagCheckBox(47, "Apocalypse"),
+                TagCheckBox(75, "Battle Academy"),
+                TagCheckBox(111, "Calm Protagonist"),
+                TagCheckBox(118, "Character Growth"),
+                TagCheckBox(122, "Cheats"),
+                TagCheckBox(169, "Cultivation"),
+                TagCheckBox(191, "Demons"),
+                TagCheckBox(215, "Dragons"),
+                TagCheckBox(265, "Fantasy World"),
+                TagCheckBox(298, "Game Elements"),
+                TagCheckBox(307, "Genius Protagonist"),
+                TagCheckBox(317, "Gods"),
+                TagCheckBox(324, "Guilds"),
+                TagCheckBox(341, "Heroes"),
+                TagCheckBox(392, "Level System"),
+                TagCheckBox(413, "Magic"),
+                TagCheckBox(420, "Male Protagonist"),
+                TagCheckBox(456, "Monsters"),
+                TagCheckBox(510, "Overpowered Protagonist"),
+                TagCheckBox(582, "Reincarnation"),
+                TagCheckBox(610, "Second Chance"),
+                TagCheckBox(671, "Special Abilities"),
+                TagCheckBox(696, "Survival"),
+                TagCheckBox(699, "Sword Wielder"),
+                TagCheckBox(725, "Transported to Another World"),
+                TagCheckBox(746, "Virtual Reality"),
+                TagCheckBox(754, "Weak to Strong"),
+            ),
+        )
 }

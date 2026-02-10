@@ -27,7 +27,10 @@ import uy.kohesive.injekt.injectLazy
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
+class ReadNovelMtl :
+    HttpSource(),
+    NovelSource,
+    ConfigurableSource {
 
     override val name = "ReadNovelMtl"
     override val baseUrl = "https://readnovelmtl.com"
@@ -50,9 +53,7 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/ranking/all-time${if (page > 1) "?page=$page" else ""}", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/ranking/all-time${if (page > 1) "?page=$page" else ""}", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val document = Jsoup.parse(response.body.string())
@@ -61,9 +62,7 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/novel${if (page > 1) "?page=$page" else ""}", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/novel${if (page > 1) "?page=$page" else ""}", headers)
 
     override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
@@ -81,16 +80,19 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
                         categorySlug = getCategoriesList().getOrNull(filter.state)?.second
                     }
                 }
+
                 is RankingFilter -> {
                     if (filter.state > 0) {
                         rankingType = rankingOptions[filter.state].second
                     }
                 }
+
                 is CategoryTypeFilter -> {
                     if (filter.state > 0) {
                         categoryType = categoryTypeOptions[filter.state].second
                     }
                 }
+
                 else -> {}
             }
         }
@@ -127,9 +129,7 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Details ========================
 
-    override fun mangaDetailsRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = Jsoup.parse(response.body.string())
@@ -183,9 +183,7 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = Jsoup.parse(response.body.string())
@@ -218,13 +216,9 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
 
     // ======================== Pages ========================
 
-    override fun pageListRequest(chapter: SChapter): Request {
-        return GET(baseUrl + chapter.url, headers)
-    }
+    override fun pageListRequest(chapter: SChapter): Request = GET(baseUrl + chapter.url, headers)
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     // ======================== Page Text (Novel) ========================
 
@@ -247,9 +241,11 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
                             content.append("<p>$text</p>\n")
                         }
                     }
+
                     "h1", "h2", "h3" -> {
                         content.append("<h3>${element.text()}</h3>\n")
                     }
+
                     "img" -> {
                         val src = element.absUrl("src")
                         if (src.isNotEmpty()) {
@@ -404,14 +400,12 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
         Pair("Xuanhuan", "xuanhuan"),
     )
 
-    private fun parseDateString(dateStr: String): Long {
-        return try {
-            val cleanDate = dateStr.trim().replace(Regex("[\\(\\)]"), "")
-            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-            formatter.parse(cleanDate)?.time ?: 0L
-        } catch (_: Exception) {
-            0L
-        }
+    private fun parseDateString(dateStr: String): Long = try {
+        val cleanDate = dateStr.trim().replace(Regex("[\\(\\)]"), "")
+        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        formatter.parse(cleanDate)?.time ?: 0L
+    } catch (_: Exception) {
+        0L
     }
 
     /**
@@ -420,26 +414,28 @@ class ReadNovelMtl : HttpSource(), NovelSource, ConfigurableSource {
      * - Protocol-relative URLs (//domain.com/path)
      * - Relative URLs (/path or path)
      */
-    private fun extractUrlPath(href: String): String {
-        return when {
-            href.isEmpty() -> ""
-            // Absolute URL with protocol
-            href.startsWith("http://") || href.startsWith("https://") -> {
-                val withoutProtocol = href.substringAfter("://")
-                val path = withoutProtocol.substringAfter("/", "")
-                if (path.isEmpty()) "/" else "/$path"
-            }
-            // Protocol-relative URL
-            href.startsWith("//") -> {
-                val withoutSlashes = href.substring(2)
-                val path = withoutSlashes.substringAfter("/", "")
-                if (path.isEmpty()) "/" else "/$path"
-            }
-            // Relative URL starting with /
-            href.startsWith("/") -> href
-            // Relative URL without leading /
-            else -> "/$href"
+    private fun extractUrlPath(href: String): String = when {
+        href.isEmpty() -> ""
+
+        // Absolute URL with protocol
+        href.startsWith("http://") || href.startsWith("https://") -> {
+            val withoutProtocol = href.substringAfter("://")
+            val path = withoutProtocol.substringAfter("/", "")
+            if (path.isEmpty()) "/" else "/$path"
         }
+
+        // Protocol-relative URL
+        href.startsWith("//") -> {
+            val withoutSlashes = href.substring(2)
+            val path = withoutSlashes.substringAfter("/", "")
+            if (path.isEmpty()) "/" else "/$path"
+        }
+
+        // Relative URL starting with /
+        href.startsWith("/") -> href
+
+        // Relative URL without leading /
+        else -> "/$href"
     }
 
     // ======================== Preferences ========================

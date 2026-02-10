@@ -14,7 +14,9 @@ import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.Jsoup
 
-class LightNovelTranslation : HttpSource(), NovelSource {
+class LightNovelTranslation :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Light Novel Translations"
     override val baseUrl = "https://lightnovelstranslations.com"
@@ -25,9 +27,7 @@ class LightNovelTranslation : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return GET("$baseUrl/read/page/$page?sortby=most-liked", headers)
-    }
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/read/page/$page?sortby=most-liked", headers)
 
     override fun popularMangaParse(response: Response): MangasPage {
         val doc = response.asJsoup()
@@ -55,9 +55,7 @@ class LightNovelTranslation : HttpSource(), NovelSource {
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return GET("$baseUrl/read/page/$page?sortby=most-recent", headers)
-    }
+    override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/read/page/$page?sortby=most-recent", headers)
 
     override fun latestUpdatesParse(response: Response) = popularMangaParse(response)
 
@@ -115,9 +113,7 @@ class LightNovelTranslation : HttpSource(), NovelSource {
 
     // ======================== Chapters ========================
 
-    override fun chapterListRequest(manga: SManga): Request {
-        return GET(baseUrl + manga.url, headers)
-    }
+    override fun chapterListRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val doc = response.asJsoup()
@@ -139,9 +135,7 @@ class LightNovelTranslation : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.encodedPath))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.encodedPath))
 
     override fun imageUrlParse(response: Response): String = ""
 

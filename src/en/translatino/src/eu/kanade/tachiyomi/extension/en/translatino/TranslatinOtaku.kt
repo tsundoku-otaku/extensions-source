@@ -20,7 +20,9 @@ import org.jsoup.Jsoup
  * TranslatinOtaku / WebNovelTranslations - Madara-based novel site
  * Uses advanced search with GET for page 1, POST admin-ajax.php for subsequent pages
  */
-class TranslatinOtaku : HttpSource(), NovelSource {
+class TranslatinOtaku :
+    HttpSource(),
+    NovelSource {
 
     override val name = "Translatin Otaku"
     override val baseUrl = "https://translatinotaku.net/"
@@ -35,30 +37,24 @@ class TranslatinOtaku : HttpSource(), NovelSource {
 
     // ======================== Popular ========================
 
-    override fun popularMangaRequest(page: Int): Request {
-        return if (page == 1) {
-            GET("$baseUrl/?s=&post_type=wp-manga&m_orderby=trending", headers)
-        } else {
-            buildAjaxRequest(page, "", emptyMap())
-        }
+    override fun popularMangaRequest(page: Int): Request = if (page == 1) {
+        GET("$baseUrl/?s=&post_type=wp-manga&m_orderby=trending", headers)
+    } else {
+        buildAjaxRequest(page, "", emptyMap())
     }
 
-    override fun popularMangaParse(response: Response): MangasPage {
-        return if (response.request.url.toString().contains("admin-ajax")) {
-            parseAjaxResponse(response)
-        } else {
-            parseFirstPage(response)
-        }
+    override fun popularMangaParse(response: Response): MangasPage = if (response.request.url.toString().contains("admin-ajax")) {
+        parseAjaxResponse(response)
+    } else {
+        parseFirstPage(response)
     }
 
     // ======================== Latest ========================
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        return if (page == 1) {
-            GET("$baseUrl/?s=&post_type=wp-manga&m_orderby=latest", headers)
-        } else {
-            buildAjaxRequest(page, "", emptyMap())
-        }
+    override fun latestUpdatesRequest(page: Int): Request = if (page == 1) {
+        GET("$baseUrl/?s=&post_type=wp-manga&m_orderby=latest", headers)
+    } else {
+        buildAjaxRequest(page, "", emptyMap())
     }
 
     override fun latestUpdatesParse(response: Response) = popularMangaParse(response)
@@ -80,14 +76,21 @@ class TranslatinOtaku : HttpSource(), NovelSource {
                 is GenreFilter -> {
                     filter.state.filter { it.state }.forEach { genres.add(it.id) }
                 }
+
                 is GenreConditionFilter -> genreOp = if (filter.state == 1) "1" else ""
+
                 is AuthorFilter -> author = filter.state
+
                 is ArtistFilter -> artist = filter.state
+
                 is ReleaseYearFilter -> release = filter.state
+
                 is AdultContentFilter -> adult = filter.toUriPart()
+
                 is StatusFilter -> {
                     filter.state.filter { it.state }.forEach { statuses.add(it.id) }
                 }
+
                 else -> {}
             }
         }
@@ -265,9 +268,7 @@ class TranslatinOtaku : HttpSource(), NovelSource {
 
     // ======================== Pages ========================
 
-    override fun pageListParse(response: Response): List<Page> {
-        return listOf(Page(0, response.request.url.toString()))
-    }
+    override fun pageListParse(response: Response): List<Page> = listOf(Page(0, response.request.url.toString()))
 
     override fun imageUrlParse(response: Response) = ""
 
@@ -292,26 +293,29 @@ class TranslatinOtaku : HttpSource(), NovelSource {
     )
 
     private class GenreCheckBox(name: String, val id: String) : Filter.CheckBox(name)
-    private class GenreFilter(genres: List<Pair<String, String>>) : Filter.Group<GenreCheckBox>(
-        "Genres",
-        genres.map { GenreCheckBox(it.first, it.second) },
-    )
+    private class GenreFilter(genres: List<Pair<String, String>>) :
+        Filter.Group<GenreCheckBox>(
+            "Genres",
+            genres.map { GenreCheckBox(it.first, it.second) },
+        )
 
-    private class GenreConditionFilter : Filter.Select<String>(
-        "Genres condition",
-        arrayOf("OR (having one)", "AND (having all)"),
-        0,
-    )
+    private class GenreConditionFilter :
+        Filter.Select<String>(
+            "Genres condition",
+            arrayOf("OR (having one)", "AND (having all)"),
+            0,
+        )
 
     private class AuthorFilter : Filter.Text("Author")
     private class ArtistFilter : Filter.Text("Artist")
     private class ReleaseYearFilter : Filter.Text("Year of Release")
 
-    private class AdultContentFilter : Filter.Select<String>(
-        "Adult content",
-        arrayOf("All", "None adult", "Only adult"),
-        0,
-    ) {
+    private class AdultContentFilter :
+        Filter.Select<String>(
+            "Adult content",
+            arrayOf("All", "None adult", "Only adult"),
+            0,
+        ) {
         fun toUriPart() = when (state) {
             1 -> "0"
             2 -> "1"
@@ -320,10 +324,11 @@ class TranslatinOtaku : HttpSource(), NovelSource {
     }
 
     private class StatusCheckBox(name: String, val id: String) : Filter.CheckBox(name)
-    private class StatusFilter(statuses: List<Pair<String, String>>) : Filter.Group<StatusCheckBox>(
-        "Status",
-        statuses.map { StatusCheckBox(it.first, it.second) },
-    )
+    private class StatusFilter(statuses: List<Pair<String, String>>) :
+        Filter.Group<StatusCheckBox>(
+            "Status",
+            statuses.map { StatusCheckBox(it.first, it.second) },
+        )
 
     private fun getGenreList() = listOf(
         "Action" to "action", "Adult" to "adult", "Adventure" to "adventure",
