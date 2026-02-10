@@ -61,11 +61,6 @@ android {
             ]
         }
     }
-def keystoreFile = rootProject.file("signingkey.jks")
-def hasSigning = keystoreFile.exists() &&
-        System.getenv("KEY_STORE_PASSWORD") &&
-        System.getenv("ALIAS") &&
-        System.getenv("KEY_PASSWORD")
 
     signingConfigs {
         release {
