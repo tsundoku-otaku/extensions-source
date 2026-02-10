@@ -31,7 +31,8 @@ abstract class Senkuro(
     override val name: String,
     override val baseUrl: String,
     final override val lang: String,
-) : ConfigurableSource, HttpSource() {
+) : HttpSource(),
+    ConfigurableSource {
 
     override val supportsLatest = false
 
@@ -44,19 +45,22 @@ abstract class Senkuro(
             .rateLimit(3)
             .build()
 
-    private inline fun <reified T : Any> T.toJsonRequestBody(): RequestBody =
-        json.encodeToString(this)
-            .toRequestBody(JSON_MEDIA_TYPE)
+    private inline fun <reified T : Any> T.toJsonRequestBody(): RequestBody = json.encodeToString(this)
+        .toRequestBody(JSON_MEDIA_TYPE)
 
     // Popular
     override fun popularMangaRequest(page: Int): Request {
         val requestBody = GraphQL(
             SEARCH_QUERY,
             SearchVariables(
-                offset = offsetCount * (page - 1),
+                offset = OFFSET_COUNT * (page - 1),
                 genre = SearchVariables.FiltersDto(
                     // Senkuro eternal built-in exclude 18+ filter
-                    exclude = if (name == "Senkuro") { senkuroExcludeGenres } else { listOf() },
+                    exclude = if (name == "Senkuro") {
+                        senkuroExcludeGenres
+                    } else {
+                        listOf()
+                    },
                 ),
             ),
         ).toJsonRequestBody()
@@ -105,36 +109,43 @@ abstract class Senkuro(
                         if (genre.isIncluded()) includeGenres.add(genre.slug) else excludeGenres.add(genre.slug)
                     }
                 }
+
                 is TagList -> filter.state.forEach { tag ->
                     if (tag.state != Filter.TriState.STATE_IGNORE) {
                         if (tag.isIncluded()) includeTags.add(tag.slug) else excludeTags.add(tag.slug)
                     }
                 }
+
                 is TypeList -> filter.state.forEach { type ->
                     if (type.state != Filter.TriState.STATE_IGNORE) {
                         if (type.isIncluded()) includeTypes.add(type.slug) else excludeTypes.add(type.slug)
                     }
                 }
+
                 is FormatList -> filter.state.forEach { format ->
                     if (format.state != Filter.TriState.STATE_IGNORE) {
                         if (format.isIncluded()) includeFormats.add(format.slug) else excludeFormats.add(format.slug)
                     }
                 }
+
                 is StatList -> filter.state.forEach { stat ->
                     if (stat.state != Filter.TriState.STATE_IGNORE) {
                         if (stat.isIncluded()) includeStatus.add(stat.slug) else excludeStatus.add(stat.slug)
                     }
                 }
+
                 is StatTranslateList -> filter.state.forEach { tstat ->
                     if (tstat.state != Filter.TriState.STATE_IGNORE) {
                         if (tstat.isIncluded()) includeTStatus.add(tstat.slug) else excludeTStatus.add(tstat.slug)
                     }
                 }
+
                 is AgeList -> filter.state.forEach { age ->
                     if (age.state != Filter.TriState.STATE_IGNORE) {
                         if (age.isIncluded()) includeAges.add(age.slug) else excludeAges.add(age.slug)
                     }
                 }
+
                 else -> {}
             }
         }
@@ -147,7 +158,7 @@ abstract class Senkuro(
         val requestBody = GraphQL(
             SEARCH_QUERY,
             SearchVariables(
-                query = query, offset = offsetCount * (page - 1),
+                query = query, offset = OFFSET_COUNT * (page - 1),
                 genre = SearchVariables.FiltersDto(
                     includeGenres,
                     excludeGenres,
@@ -191,15 +202,13 @@ abstract class Senkuro(
     }
 
     // Details
-    private fun parseStatus(status: String?): Int {
-        return when (status) {
-            "FINISHED" -> SManga.COMPLETED
-            "ONGOING" -> SManga.ONGOING
-            "HIATUS" -> SManga.ON_HIATUS
-            "ANNOUNCE" -> SManga.ONGOING
-            "CANCELLED" -> SManga.CANCELLED
-            else -> SManga.UNKNOWN
-        }
+    private fun parseStatus(status: String?): Int = when (status) {
+        "FINISHED" -> SManga.COMPLETED
+        "ONGOING" -> SManga.ONGOING
+        "HIATUS" -> SManga.ON_HIATUS
+        "ANNOUNCE" -> SManga.ONGOING
+        "CANCELLED" -> SManga.CANCELLED
+        else -> SManga.UNKNOWN
     }
 
     private fun MangaTachiyomiInfoDto.toSManga(): SManga {
@@ -254,13 +263,11 @@ abstract class Senkuro(
         }
     }
 
-    override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> {
-        return client.newCall(chapterListRequest(manga))
-            .asObservableSuccess()
-            .map { response ->
-                chapterListParse(response, manga)
-            }
-    }
+    override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> = client.newCall(chapterListRequest(manga))
+        .asObservableSuccess()
+        .map { response ->
+            chapterListParse(response, manga)
+        }
     override fun chapterListParse(response: Response) = throw UnsupportedOperationException()
     private fun chapterListParse(response: Response, manga: SManga): List<SChapter> {
         val chaptersList = json.decodeFromString<PageWrapperDto<MangaTachiyomiChaptersDto>>(response.body.string())
@@ -311,9 +318,7 @@ abstract class Senkuro(
 
     override fun imageUrlParse(response: Response): String = throw NotImplementedError("Unused")
 
-    override fun fetchImageUrl(page: Page): Observable<String> {
-        return Observable.just(page.url)
-    }
+    override fun fetchImageUrl(page: Page): Observable<String> = Observable.just(page.url)
 
     // Filters
     // Filters are fetched immediately once an extension loads
@@ -430,7 +435,7 @@ abstract class Senkuro(
     )
 
     companion object {
-        private const val offsetCount = 20
+        private const val OFFSET_COUNT = 20
         private const val API_URL = "https://api.senkuro.me/graphql"
         private val senkuroExcludeGenres = listOf("hentai", "yaoi", "yuri", "shoujo_ai", "shounen_ai")
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaTypeOrNull()
